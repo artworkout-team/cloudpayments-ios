@@ -10,7 +10,6 @@ import UIKit
 import Foundation
 
 enum PaymentViewModelType: Codable {
-    case api
     case publicId
     case amount
     case currency
@@ -33,7 +32,6 @@ enum PaymentViewModelType: Codable {
     //title
     var title: String {
         switch self {
-        case .api: return "Api (Only for testing):"
         case .publicId: return "PublicId:"
         case .amount: return "Amount:"
         case .currency: return "Currency (Optional):"
@@ -58,7 +56,6 @@ enum PaymentViewModelType: Codable {
     //text
     var `default`: String {
         switch self {
-        case .api: return "https://api.cloudpayments.ru/"
         case .publicId: return "test_api_00000000000000000000002"
         case .amount: return "100"
         case .currency: return "RUB"
@@ -100,7 +97,6 @@ struct PaymentViewModel: Codable {
               let array = try? JSONDecoder().decode([PaymentViewModel].self, from: data)
         else {
             return [
-                .init(.api),
                 .init(.publicId),
                 .init(.amount),
                 .init(.currency),

@@ -8,10 +8,16 @@
 
 import Foundation
 
+public enum PaymentResultAction {
+    case success
+    case error
+    case close
+}
+
 public protocol PaymentDelegate: AnyObject {
     func onPaymentFinished(_ transactionId: Int64?)
     func onPaymentFailed(_ errorMessage: String?)
-    func paymentFinishedIntentApi(_ transaction: Int64?)
+    func onPaymentClosed()
 }
 
 public protocol PaymentUIDelegate: AnyObject {
@@ -28,16 +34,16 @@ internal class PaymentDelegateImpl {
         self.delegate = delegate
     }
     
-    func paymentFinished(_ transaction: Transaction?){
-        self.delegate?.onPaymentFinished(transaction?.transactionId)
-    }
-    
-    func paymentFinishedIntentApi(_ transaction: PaymentTransactionResponse?){
+    func paymentFinished(_ transaction: PaymentTransactionResponse?){
         self.delegate?.onPaymentFinished(transaction?.transactionId)
     }
     
     func paymentFailed(_ errorMessage: String?) {
         self.delegate?.onPaymentFailed(errorMessage)
+    }
+    
+    func paymentClosed() {
+        self.delegate?.onPaymentClosed()
     }
 }
 

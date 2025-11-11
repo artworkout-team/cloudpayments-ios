@@ -64,7 +64,6 @@ public class PaymentData {
     private(set) var description: String?
     private(set) var accountId: String?
     private(set) var invoiceId: String?
-    private(set) var cultureName: String?
     private(set) var receipt: Receipt?
     private(set) var recurrent: Recurrent?
     private(set) var jsonData: String?
@@ -86,9 +85,14 @@ public class PaymentData {
     var secret: String?
     var terminalFullUrl: String? = nil
     var isTest: Bool? = nil
-    
-    var sdkConfiguration: SDKConfiguration?
-    
+    var cachedMethods: [PaymentMethod]? = nil
+    var methodsAvailable: [String]? = nil
+    var singlePaymentMethod: Bool = false
+    var isAdditionalMethodsExpanded: Bool? = nil
+    var isSaveCardSelected: Bool? = nil
+    var isReceiptSelected: Bool? = nil
+    var analyticsSessionStarted = false
+        
     public init() {
     }
     
@@ -128,11 +132,6 @@ public class PaymentData {
     
     public func setInvoiceId(_ invoiceId: String?) -> PaymentData {
         self.invoiceId = invoiceId
-        return self
-    }
-    
-    public func setCultureName(_ cultureName: String?) -> PaymentData {
-        self.cultureName = cultureName
         return self
     }
     

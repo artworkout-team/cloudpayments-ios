@@ -8,6 +8,39 @@
 
 import UIKit
 
+final class CPButton: UIButton {
+
+    var onAction: (() -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        commonInit()
+    }
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        addTarget(self, action: #selector(handleTap), for: .touchUpInside)
+        configuration = .plain()
+    }
+
+    @objc private func handleTap() { onAction?() }
+
+    func setPadding(_ insets: NSDirectionalEdgeInsets) {
+        var cfg = configuration ?? .plain()
+        cfg.contentInsets = insets
+        configuration = cfg
+    }
+
+    func setIcon(_ image: UIImage?) {
+        var cfg = configuration ?? .plain()
+        cfg.image = image
+        configuration = cfg
+    }
+}
+
 class Button: UIButton {
     var onAction: (()->())?
     
@@ -62,5 +95,46 @@ extension UIButton {
         self.layer.borderWidth = borderWidth
         self.setTitle(buttonText, for: .normal)
         self.setTitleColor(textColor, for: .normal)
+    }
+}
+
+extension UIButton {
+    func startLoading(loaderImage: UIImage) {
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .fixed
+        config.background.cornerRadius = 8
+        config.baseBackgroundColor = self.configuration?.baseBackgroundColor ?? .systemBlue
+
+        config.image = loaderImage
+        config.imagePlacement = .leading
+        config.imagePadding = 0
+        config.title = nil
+
+        self.configuration = config
+        self.isUserInteractionEnabled = false
+        
+        let rotation = CABasicAnimation(keyPath: "transform.rotation")
+        rotation.fromValue = 0
+        rotation.toValue = CGFloat.pi * 2
+        rotation.duration = 1
+        rotation.repeatCount = .infinity
+        self.imageView?.layer.add(rotation, forKey: "rotate")
+    }
+
+    func stopLoading(title: String?, icon: UIImage?, backgroundColor: UIColor) {
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .fixed
+        config.background.cornerRadius = 8
+        config.baseBackgroundColor = backgroundColor
+
+        config.title = title
+        config.image = icon
+        config.imagePlacement = .leading
+        config.imagePadding = 8
+
+        self.configuration = config
+        self.isUserInteractionEnabled = true
+
+        self.imageView?.layer.removeAnimation(forKey: "rotate")
     }
 }

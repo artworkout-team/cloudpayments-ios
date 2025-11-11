@@ -9,7 +9,7 @@
 import Foundation
 
 protocol ProgressSbpViewControllerProtocol: AnyObject {
-    func resultPayment(result: PaymentSbpView.PaymentAction, error: String?, transaction: PaymentTransactionResponse?)
+    func resultPayment(result: PaymentResultAction, error: String?, transaction: PaymentTransactionResponse?)
     func tableViewReloadData()
     func openBanksApp(_ url: URL)
     func openSafariViewController(_ url: URL)
@@ -69,7 +69,7 @@ final class ProgressSbpPresenter {
                 print("pollStatus: 200 — продолжаем опрос")
             } else {
                 self.stopPolling()
-                self.view?.showAlert(message: nil, title: .errorWordTitle)
+                self.view?.showAlert(message: .errorWordTitle, title: nil)
             }
             print("pollStatus вызван — отправка запроса на getIntentWaitStatus c type sbp")
         }
@@ -179,7 +179,7 @@ final class ProgressSbpPresenter {
         let isWebClient = value.isWebClientActive == WebClientFlag.active
         
         guard let schemeToUse = isWebClient ? value.webClientUrl : value.schema else {
-            view?.showAlert(message: nil, title: .schemeMissing)
+            view?.showAlert(message: .schemeMissing, title: nil)
             return
         }
         
@@ -188,7 +188,7 @@ final class ProgressSbpPresenter {
             switch statusCode {
             case 200:
                 guard let sbpLink = intentSbpLink else {
-                    self.view?.showAlert(message: nil, title: .anotherPaymentMethod)
+                    self.view?.showAlert(message: .anotherPaymentMethod, title: nil)
                     return
                 }
                 if isWebClient {
@@ -199,16 +199,16 @@ final class ProgressSbpPresenter {
                     self.openBanksApp(sbpLink)
                 }
             case 409:
-                self.view?.resultPayment(result: .error, error: .orderAlreadyBeenPaid, transaction: nil)
+                self.view?.resultPayment(result: .success, error: .orderAlreadyBeenPaid, transaction: nil)
             default:
-                self.view?.showAlert(message: nil, title: .banksAppNotOpen)
+                self.view?.showAlert(message: .banksAppNotOpen, title: nil)
             }
         }
     }
     
     private func openBanksApp(_ url: String) {
         guard let finalURL = URL(string: url) else {
-            view?.showAlert(message: nil, title: .banksAppNotOpen)
+            view?.showAlert(message: .banksAppNotOpen, title: nil)
             return
         }
         view?.openBanksApp(finalURL)
@@ -216,7 +216,7 @@ final class ProgressSbpPresenter {
     
     private func openSafariViewController(_ string: String) {
         guard let finalURL = URL(string: string) else {
-            view?.showAlert(message: nil, title: .banksAppNotOpen)
+            view?.showAlert(message: .banksAppNotOpen, title: nil)
             return
         }
         view?.openSafariViewController(finalURL)

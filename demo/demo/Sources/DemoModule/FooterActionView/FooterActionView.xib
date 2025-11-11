@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="22505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22504"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -15,16 +15,15 @@
                 <outlet property="demoActionButton" destination="4G9-Lz-u5L" id="B4k-wK-c4a"/>
                 <outlet property="demoActionSwitch" destination="MvI-PE-XfX" id="rC4-Ca-p6R"/>
                 <outlet property="demoLabel" destination="HFx-Qt-LGR" id="Xpp-bR-5BI"/>
-                <outlet property="singlePaymentMethodsButtonAction" destination="nuu-nD-CdD" id="Ttg-Mk-hcy"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
         <view contentMode="scaleToFill" id="iN0-l3-epB">
-            <rect key="frame" x="0.0" y="0.0" width="499" height="205"/>
+            <rect key="frame" x="0.0" y="0.0" width="462" height="177"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4G9-Lz-u5L">
-                    <rect key="frame" x="99.666666666666686" y="140" width="300" height="50"/>
+                    <rect key="frame" x="81" y="62" width="300" height="50"/>
                     <color key="backgroundColor" name="color_black"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="50" id="EZE-jc-R8w"/>
@@ -32,7 +31,7 @@
                     </constraints>
                     <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="19"/>
                     <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                    <state key="normal" title="Стандартная форма">
+                    <state key="normal" title="Run">
                         <color key="titleColor" name="color_text_white"/>
                     </state>
                 </button>
@@ -40,41 +39,25 @@
                     <rect key="frame" x="15" y="15" width="51" height="31"/>
                 </switch>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Включить двухстадийную оплату" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="HFx-Qt-LGR">
-                    <rect key="frame" x="79" y="1" width="405" height="59"/>
+                    <rect key="frame" x="79" y="19.666666666666664" width="368" height="21.666666666666664"/>
                     <fontDescription key="fontDescription" type="system" pointSize="18"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
-                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="nuu-nD-CdD">
-                    <rect key="frame" x="99.666666666666686" y="70" width="300" height="50"/>
-                    <color key="backgroundColor" systemColor="systemMintColor"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="50" id="2Ai-Nk-1aH"/>
-                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="300" id="Cp6-hF-VIl"/>
-                    </constraints>
-                    <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="19"/>
-                    <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                    <state key="normal" title="Отдельные кнопки">
-                        <color key="titleColor" name="color_text_white"/>
-                    </state>
-                </button>
             </subviews>
             <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
             <constraints>
                 <constraint firstAttribute="trailing" secondItem="HFx-Qt-LGR" secondAttribute="trailing" constant="15" id="0Fs-kc-TrS"/>
                 <constraint firstItem="MvI-PE-XfX" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="15" id="5w0-dz-vpT"/>
-                <constraint firstAttribute="bottom" secondItem="4G9-Lz-u5L" secondAttribute="bottom" constant="15" id="OIT-1d-ZJK"/>
+                <constraint firstAttribute="bottom" secondItem="4G9-Lz-u5L" secondAttribute="bottom" constant="65" id="OIT-1d-ZJK"/>
                 <constraint firstItem="4G9-Lz-u5L" firstAttribute="centerX" secondItem="iN0-l3-epB" secondAttribute="centerX" id="Uka-Kh-g0U"/>
-                <constraint firstItem="nuu-nD-CdD" firstAttribute="top" secondItem="HFx-Qt-LGR" secondAttribute="bottom" constant="10" id="VUb-KW-Luc"/>
-                <constraint firstItem="nuu-nD-CdD" firstAttribute="centerX" secondItem="iN0-l3-epB" secondAttribute="centerX" id="bff-VX-chS"/>
                 <constraint firstItem="HFx-Qt-LGR" firstAttribute="leading" secondItem="MvI-PE-XfX" secondAttribute="trailing" constant="15" id="dWA-Hg-AsY"/>
                 <constraint firstItem="HFx-Qt-LGR" firstAttribute="centerY" secondItem="MvI-PE-XfX" secondAttribute="centerY" id="pIR-R6-ePF"/>
-                <constraint firstItem="4G9-Lz-u5L" firstAttribute="top" secondItem="nuu-nD-CdD" secondAttribute="bottom" constant="20" id="rgn-WJ-Q8n"/>
                 <constraint firstItem="MvI-PE-XfX" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" constant="15" id="vO3-Yp-fHt"/>
             </constraints>
             <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
-            <point key="canvasLocation" x="92.36641221374046" y="141.90140845070422"/>
+            <point key="canvasLocation" x="61.068702290076331" y="75.704225352112687"/>
         </view>
     </objects>
     <resources>
@@ -86,9 +69,6 @@
         </namedColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemMintColor">
-            <color red="0.0" green="0.78039215689999997" blue="0.74509803919999995" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>

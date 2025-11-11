@@ -10,40 +10,29 @@ import UIKit
 
 final class ProgressTPayViewController: UIViewController {
     
-    weak var delegate: ProgressTPayProtocol?
-    private let customView = ProgressTPayView()
+    private let customView = ProgressPaymentView(method: .tpay)
     private let presenter: ProgressTPayPresenter
-    private let defaultOpen: Bool
     
-    //MARK: - Init
-    
-    init(presenter: ProgressTPayPresenter, _ defaultOpen: Bool = false) {
+    // MARK: - Init
+    init(presenter: ProgressTPayPresenter) {
         self.presenter = presenter
-        self.defaultOpen = defaultOpen
         super.init(nibName: nil, bundle: .mainSdk)
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle = .crossDissolve
         view.isOpaque = false
-        view.backgroundColor = .clear
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
     }
     
-    public class func present(with configuration: PaymentConfiguration, from: UIViewController, defaultOpen: Bool = false) {
+    class func present(with configuration: PaymentConfiguration, from: UIViewController) {
         let presenter = ProgressTPayPresenter(configuration: configuration)
-        let controller = ProgressTPayViewController(presenter: presenter, defaultOpen)
+        let controller = ProgressTPayViewController(presenter: presenter)
         presenter.view = controller
-        controller.modalPresentationStyle = .overFullScreen
-        controller.modalTransitionStyle = .crossDissolve
-        controller.view.isOpaque = false
         from.present(controller, animated: false)
     }
     
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
-    //MARK: - LifeCycle
-    
+    // MARK: - LifeCycle
     override func loadView() {
         super.loadView()
         view = customView
@@ -53,6 +42,12 @@ final class ProgressTPayViewController: UIViewController {
         super.viewDidLoad()
         customView.delegate = self
         presenter.getTPayLinkIntentApi()
+        LoggerService.shared.startLogging(publicId: presenter.configuration.publicId)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AnalyticsService.shared.sendScreenOpenedEvent(configuration: presenter.configuration, screenName: "Waiting", methodChosen: "TinkoffPay", cardFieldsCount: 0, eventType: "Open")
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -61,70 +56,171 @@ final class ProgressTPayViewController: UIViewController {
     }
 }
 
-//MARK: - Progress TPay View Controller
-
-extension ProgressTPayViewController: CustomTPayViewDelegate {
-    
+// MARK: - ProgressPaymentViewDelegate
+extension ProgressTPayViewController: ProgressPaymentViewDelegate {
     func closePaymentButton() {
-        
-        if defaultOpen {
-            resultPayment(result: .close, error: nil, transaction: nil)
-            return
-        }
-        
-        dismiss(animated: true) {
-            self.delegate?.resultPayment(result: .close, error: nil, transactionId: nil)
-        }
+        resultPayment(result: .close, error: nil, transaction: nil)
     }
 }
 
-//MARK: Presenter Delegate
-
+// MARK: - ProgressTPayViewControllerProtocol
 extension ProgressTPayViewController: ProgressTPayViewControllerProtocol {
     
     func showAlert(message: String?, title: String?) {
-        showAlert(title: title, message: message)
+        showAlert(title: title, message: message) 
     }
     
     func openLinkURL(url: URL) {
         UIApplication.shared.open(url) { success in
             if !success {
-                self.showAlert(title: nil, message: .banksAppNotOpen)
-            }
-        }
-    }
-    
-    func resultPayment(result: PaymentTPayView.PaymentAction, error: String?, transaction: PaymentTransactionResponse?) {
-        
-        guard let parent = self.presentingViewController else { return }
-        
-        if let delegate = delegate {
-            
-            if presenter.configuration.showResultScreen {
-                self.dismiss(animated: false) {
-                    self.openResultScreens(result, error, transaction, parent)
+                self.showAlert(title: nil, message: .banksAppNotOpen) { [weak self] in
+                    guard let self, let parent = self.presentingViewController else { return }
+                    self.dismiss(animated: false) {
+                        PaymentOptionsViewController.present(
+                            with: self.presenter.configuration,
+                            from: parent,
+                            skipLoader: true
+                        )
+                        AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: self.presenter.configuration)
+                    }
                 }
             }
-            
-            delegate.resultPayment(result: result, error: error, transactionId: transaction?.transactionId)
-            return
-        }
-        
-        self.dismiss(animated: false) {
-            self.openResultScreens(result, error, transaction, parent)
         }
     }
     
-    func openResultScreens(_ result: PaymentTPayView.PaymentAction,  _ error: String?, _ transactionId: PaymentTransactionResponse?, _ parent: UIViewController) {
+    func resultPayment(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?
+    ) {
+        let configuration = presenter.configuration
+        guard let parent = presentingViewController else { return }
         
-        switch result {
-        case .success:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .completed(transactionId), from: parent)
-        case .error:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .declined(error), from: parent)
-        case .close:
-            PaymentOptionsForm.present(with: self.presenter.configuration, from: parent)
+        /// showResultScreen = true, singlePaymentMethod = true
+        if configuration.paymentData.singlePaymentMethod {
+            if configuration.showResultScreen {
+                handleSingleMethodResultScreen(
+                    result: result,
+                    error: error,
+                    transaction: transaction,
+                    configuration: configuration,
+                    parent: parent
+                )
+            } else {
+                /// showResultScreen = false, singlePaymentMethod = true
+                handleSingleMethodNoResultScreen(
+                    result: result,
+                    error: error,
+                    transaction: transaction,
+                    configuration: configuration
+                )
+            }
+        } else {
+            /// showResultScreen = false, singlePaymentMethod = false
+            handleStandartMethodResultScreen(
+                result: result,
+                error: error,
+                transaction: transaction,
+                configuration: configuration,
+                parent: parent
+            )
+        }
+    }
+}
+
+// MARK: - Result handling
+private extension ProgressTPayViewController {
+    
+    func handleSingleMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
+        
+        if let presented = self.presentedViewController {
+            presented.dismiss(animated: false)
         }
         
+        dismiss(animated: false) {
+            switch result {
+            case .success:
+                let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                PaymentResultViewController.present(
+                    from: parent,
+                    state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                        configuration.paymentDelegate.paymentFinished(transaction)
+                        configuration.paymentDelegate.paymentClosed()
+                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                    }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "TinkoffPay", cardFieldsCount: 0, eventType: "Open")
+            case .error:
+                PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                    configuration.paymentDelegate.paymentFailed(error)
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "TinkoffPay", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
+            }
+        }
+    }
+    
+    func handleSingleMethodNoResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration
+    ) {
+        dismiss(animated: true) {
+            switch result {
+            case .success:
+                configuration.paymentDelegate.paymentFinished(transaction)
+            case .error:
+                configuration.paymentDelegate.paymentFailed(error)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
+            }
+        }
+    }
+    
+    func handleStandartMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
+        
+        if let presented = self.presentedViewController {
+            presented.dismiss(animated: false)
+        }
+        
+        dismiss(animated: false) {
+            switch result {
+            case .success:
+                let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                PaymentResultViewController.present(from: parent, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                    configuration.paymentDelegate.paymentClosed()
+                    configuration.paymentDelegate.paymentFinished(transaction)
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "TinkoffPay", cardFieldsCount: 0, eventType: "Open")
+            case .error:
+                PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                    configuration.paymentDelegate.paymentFailed(error)
+                    PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                    AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "TinkoffPay", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
+                PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ChooseOtherMethod", elementType: "Button", actionType: "Click", screenName: "/methods")
+                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+            }
+        }
     }
 }

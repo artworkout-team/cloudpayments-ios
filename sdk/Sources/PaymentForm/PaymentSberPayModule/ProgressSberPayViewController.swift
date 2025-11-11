@@ -9,27 +9,24 @@
 import UIKit
 
 final class ProgressSberPayViewController: UIViewController {
-    weak var delegate: ProgressSberPayProtocol?
-    private let customView = ProgressSberPayView()
+    private let customView = ProgressPaymentView(method: .sberPay)
     private let presenter: ProgressSberPayPresenter
-    private let defaultOpen: Bool
     
     //MARK: - Init
     
-    init(presenter: ProgressSberPayPresenter, _ defaultOpen: Bool = false) {
+    init(presenter: ProgressSberPayPresenter) {
         self.presenter = presenter
-        self.defaultOpen = defaultOpen
         super.init(nibName: nil, bundle: .mainSdk)
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle = .crossDissolve
         view.isOpaque = false
         view.backgroundColor = .clear
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
     }
     
-    public class func present(with configuration: PaymentConfiguration, from: UIViewController, defaultOpen: Bool = false) {
+    class func present(with configuration: PaymentConfiguration, from: UIViewController) {
         let presenter = ProgressSberPayPresenter(configuration: configuration)
-        let controller = ProgressSberPayViewController(presenter: presenter, defaultOpen)
+        let controller = ProgressSberPayViewController(presenter: presenter)
         presenter.view = controller
         controller.modalPresentationStyle = .overFullScreen
         controller.modalTransitionStyle = .crossDissolve
@@ -52,6 +49,12 @@ final class ProgressSberPayViewController: UIViewController {
         super.viewDidLoad()
         customView.delegate = self
         presenter.getSberPayLinkIntentApi()
+        LoggerService.shared.startLogging(publicId: presenter.configuration.publicId)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AnalyticsService.shared.sendScreenOpenedEvent(configuration: presenter.configuration, screenName: "Waiting", methodChosen: "SberPay", cardFieldsCount: 0, eventType: "Open")
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -60,34 +63,33 @@ final class ProgressSberPayViewController: UIViewController {
     }
 }
 
-//MARK: - Progress SberPay ViewController
-
-extension ProgressSberPayViewController: CustomSberPayViewDelegate {
+// MARK: - ProgressPaymentViewDelegate
+extension ProgressSberPayViewController: ProgressPaymentViewDelegate {
     func closePaymentButton() {
-        
-        if defaultOpen {
-            resultPayment(result: .close, error: nil, transaction: nil)
-            return
-        }
-        
-        dismiss(animated: true) {
-            self.delegate?.resultPayment(result: .close, error: nil, transactionId: nil)
-        }
+        resultPayment(result: .close, error: nil, transaction: nil)
     }
 }
 
-//MARK: Presenter Delegate
-
+// MARK: - ProgressSberPayViewControllerProtocol
 extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
-    
     func showAlert(message: String?, title: String?) {
-        showAlert(title: title, message: message)
+        showAlert(title: title, message: message) { [weak self] in
+            guard let self, let parent = self.presentingViewController else { return }
+            self.dismiss(animated: false) {
+                PaymentOptionsViewController.present(
+                    with: self.presenter.configuration,
+                    from: parent,
+                    skipLoader: true
+                )
+                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: self.presenter.configuration)
+            }
+        }
     }
-    
+
     func openLinkUrls(urls: [URL]) {
         let dispatchGroup = DispatchGroup()
         var successFound = false
-        
+
         for url in urls {
             dispatchGroup.enter()
             UIApplication.shared.open(url, options: [:]) { success in
@@ -100,45 +102,146 @@ extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
                 break
             }
         }
-        
+
         dispatchGroup.notify(queue: .main) {
             if !successFound {
-                self.showAlert(title: nil, message: .banksAppNotOpen)
+                self.showAlert(message: .banksAppNotOpen, title: nil)
             }
         }
     }
-    
-    func resultPayment(result: PaymentSberPayView.PaymentAction, error: String?, transaction: PaymentTransactionResponse?) {
+
+    func resultPayment(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?
+    ) {
+        let configuration = presenter.configuration
+        guard let parent = presentingViewController else { return }
+
+        /// showResultScreen = true, singlePaymentMethod = true
+        if configuration.paymentData.singlePaymentMethod {
+            if configuration.showResultScreen {
+                handleSingleMethodResultScreen(
+                    result: result,
+                    error: error,
+                    transaction: transaction,
+                    configuration: configuration,
+                    parent: parent
+                )
+            } else {
+                /// showResultScreen = false, singlePaymentMethod = true
+                handleSingleMethodNoResultScreen(
+                    result: result,
+                    error: error,
+                    transaction: transaction,
+                    configuration: configuration
+                )
+            }
+        } else {
+            /// showResultScreen = false, singlePaymentMethod = false
+            handleStandartMethodResultScreen(
+                result: result,
+                error: error,
+                transaction: transaction,
+                configuration: configuration,
+                parent: parent
+            )
+        }
+    }
+}
+
+// MARK: - Result handling
+private extension ProgressSberPayViewController {
+    func handleSingleMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
         
-        guard let parent = self.presentingViewController else { return }
+        if let presented = self.presentedViewController {
+            presented.dismiss(animated: false)
+        }
         
-        if let delegate = delegate {
-            
-            if presenter.configuration.showResultScreen {
-                self.dismiss(animated: false) {
-                    self.openResultScreens(result, error, transaction, parent)
+        dismiss(animated: false) {
+            switch result {
+            case .success:
+                let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                PaymentResultViewController.present(
+                    from: parent,
+                    state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                    configuration.paymentDelegate.paymentFinished(transaction)
+                    configuration.paymentDelegate.paymentClosed()
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
                 }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "SberPay", cardFieldsCount: 0, eventType: "Open")
+            case .error:
+                PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                    configuration.paymentDelegate.paymentFailed(error)
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "SberPay", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
             }
-            
-            delegate.resultPayment(result: result, error: error, transactionId: transaction?.transactionId)
-            return
-        }
-        
-        self.dismiss(animated: false) {
-            self.openResultScreens(result, error, transaction, parent)
         }
     }
-    
-    func openResultScreens(_ result: PaymentSberPayView.PaymentAction,  _ error: String?, _ transaction: PaymentTransactionResponse?, _ parent: UIViewController) {
+
+    func handleSingleMethodNoResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration
+    ) {
+        dismiss(animated: true) {
+            switch result {
+            case .success:
+                configuration.paymentDelegate.paymentFinished(transaction)
+            case .error:
+                configuration.paymentDelegate.paymentFailed(error)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
+            }
+        }
+    }
+
+    func handleStandartMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
         
-        switch result {
-        case .success:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .completed(transaction), from: parent)
-        case .error:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .declined(error), from: parent)
-        case .close:
-            PaymentOptionsForm.present(with: self.presenter.configuration, from: parent)
+        if let presented = self.presentedViewController {
+            presented.dismiss(animated: false)
         }
         
+        dismiss(animated: false) {
+            switch result {
+            case .success:
+                let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                PaymentResultViewController.present(from: parent,state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                    configuration.paymentDelegate.paymentFinished(transaction)
+                    configuration.paymentDelegate.paymentClosed()
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "SberPay", cardFieldsCount: 0, eventType: "Open")
+            case .error:
+                PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                    configuration.paymentDelegate.paymentFailed(error)
+                    PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                    AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                    AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                }
+                AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "SberPay", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+            case .close:
+                configuration.paymentDelegate.paymentClosed()
+                PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ChooseOtherMethod", elementType: "Button", actionType: "Click", screenName: "/methods")
+                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+            }
+        }
     }
 }

@@ -8,25 +8,19 @@
 import UIKit
 import SafariServices
 
-protocol ProgressSbpPresenterProtocol: AnyObject {
-    func resultPayment(_ result: PaymentSbpView.PaymentAction, error: String?, transactionId: Int64?)
-}
-
 final class ProgressSbpViewController: BaseViewController {
     
-    //MARK: - Private Properties
-    
+    // MARK: - Private Properties
     private let presenter: ProgressSbpPresenter
-    weak var delegate: ProgressSbpPresenterProtocol?
     private var contentView: ProgressSbpView = ProgressSbpView()
     private let loaderView = LoaderView()
     private var closedConstraint: NSLayoutConstraint!
     private var tableViewHeightConstraint: NSLayoutConstraint!
     
     private lazy var currentContainerHeight: CGFloat = contentView.bounds.height
-    private var isCloused = false
+    private var isClosed = false
+    private let useDimming: Bool
     private var heightPresentView: CGFloat { return contentView.bounds.height }
-    
     private lazy var tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapAction))
     
     override var isKeyboardShowing: Bool {
@@ -35,25 +29,21 @@ final class ProgressSbpViewController: BaseViewController {
         }
     }
     
-    //MARK: - Init
-    
-    init(presenter: ProgressSbpPresenter) {
+    // MARK: - Init
+    init(presenter: ProgressSbpPresenter, useDimming: Bool = true) {
         self.presenter = presenter
+        self.useDimming = useDimming
         super.init(nibName: nil, bundle: .mainSdk)
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle = .crossDissolve
-        view.isOpaque = false
-        view.backgroundColor = .clear
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    //MARK: - Present flow on standart form
-    
-    public class func present(with configuration: PaymentConfiguration, from: UIViewController) {
+    // MARK: - Present
+    class func present(with configuration: PaymentConfiguration, from: UIViewController) {
         let presenter = ProgressSbpPresenter(configuration: configuration)
         let controller = ProgressSbpViewController(presenter: presenter)
         presenter.view = controller
@@ -63,8 +53,7 @@ final class ProgressSbpViewController: BaseViewController {
         from.present(controller, animated: false)
     }
     
-    //MARK: - LifeCycle
-    
+    // MARK: - LifeCycle
     override func loadView() {
         super.loadView()
         setupConstraintsAndView()
@@ -72,7 +61,6 @@ final class ProgressSbpViewController: BaseViewController {
         loaderView.frame = view.bounds
         loaderView.fullConstraint()
         loaderView.layoutSubviews()
-        
         loaderView.startAnimated(LoaderType.loadingBanks.toString())
     }
     
@@ -89,23 +77,37 @@ final class ProgressSbpViewController: BaseViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        presentesionView(true) {}
-        
+        presentationView(true) {}
         LoggerService.shared.startLogging(publicId: presenter.configuration.publicId)
+        AnalyticsService.shared.sendScreenOpenedEvent(configuration: presenter.configuration, screenName: "/methods", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
     }
     
     deinit {
         presenter.stopPolling()
     }
     
-    //MARK: - Private methods
+    private func showWaitScreen() {
+        let progressView = ProgressPaymentView(method: .sbp)
+        progressView.delegate = self
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(progressView)
+        NSLayoutConstraint.activate([
+            progressView.topAnchor.constraint(equalTo: view.topAnchor),
+            progressView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        if useDimming {
+            self.view.backgroundColor = .clear
+        }
+        AnalyticsService.shared.sendScreenOpenedEvent(configuration: presenter.configuration, screenName: "Waiting", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+    }
     
+    // MARK: - Private methods
     private func setupConstraintsAndView() {
-        
         view.addSubviews(contentView)
         
         NSLayoutConstraint.activate([
-            //contentView
             contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
@@ -131,12 +133,9 @@ final class ProgressSbpViewController: BaseViewController {
     }
     
     // MARK: Pan gesture handler
-    
     @objc func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
-        
         let y = gesture.translation(in: view).y
         let newHeight = currentContainerHeight - y
-        
         let procent = 30.0
         let defaultHeight = heightPresentView - ((heightPresentView * procent) / 100)
         
@@ -149,26 +148,27 @@ final class ProgressSbpViewController: BaseViewController {
                 return
             }
             
-            self.closedConstraint.constant = -newHeight
-            self.view.layoutIfNeeded()
+            closedConstraint.constant = -newHeight
+            view.layoutIfNeeded()
             
         case .ended, .cancelled:
-            
             if newHeight < defaultHeight {
                 currentContainerHeight = newHeight
-                presentesionView(false) {
-                    
-                    if let delegate = self.delegate {
-                        guard let _ = self.presentingViewController else {return}
-                        self.dismiss(animated: false) {
-                            delegate.resultPayment(.close, error: nil, transactionId: nil)
+                guard let parent = self.presentingViewController else { return }
+                let configuration = self.presenter.configuration
+                presentationView(false) {
+                    self.dismiss(animated: false) {
+                        configuration.paymentDelegate.paymentClosed()
+                        if !configuration.paymentData.singlePaymentMethod {
+                            PaymentOptionsViewController.present(
+                                with: configuration,
+                                from: parent,
+                                skipLoader: true
+                            )
                         }
-                        return
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/methods", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Close")
+                        AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
                     }
-                    
-                    guard let parent = self.presentingViewController else {return}
-                    self.dismiss(animated: false)
-                    PaymentForm.present(with: self.presenter.configuration, from: parent)
                 }
             } else {
                 closedConstraint.constant = -heightPresentView
@@ -177,33 +177,35 @@ final class ProgressSbpViewController: BaseViewController {
                     self.view.layoutIfNeeded()
                 }
             }
-            
         default:
             break
         }
     }
     
-    private func presentesionView(_ isPresent: Bool, completion: @escaping () -> Void) {
-        if isCloused { return }
-        isCloused = !isPresent
-        let alpha = isPresent ? 0.6 : 0
-        self.currentContainerHeight = heightPresentView
+    private func presentationView(_ isPresent: Bool, completion: @escaping () -> Void) {
+        if isClosed { return }
+        isClosed = !isPresent
+        currentContainerHeight = heightPresentView
         
         UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut) {
-            self.closedConstraint.constant = isPresent ?  -self.heightPresentView :  0
-            self.view.backgroundColor = .init(red: 1, green: 1, blue: 1, alpha: alpha)
+            self.closedConstraint.constant = isPresent ? -self.heightPresentView : 0
+            
+            if self.useDimming {
+                let alpha = isPresent ? 0.5 : 0
+                self.view.backgroundColor = UIColor.black.withAlphaComponent(alpha)
+            } else {
+                self.view.backgroundColor = .clear
+            }
+            
             self.view.layoutIfNeeded()
         } completion: { _ in
             completion()
         }
     }
-    
 }
 
-//MARK: - CustomSbpViewDelegate
-
+// MARK: - CustomSbpViewDelegate
 extension ProgressSbpViewController: CustomSbpViewDelegate {
-    
     func numberOfRow(_ progressSbpView: ProgressSbpView, didChange text: String) {
         let trimmedSearchText = text.trimmingCharacters(in: .whitespaces)
         presenter.editingSearchBar(trimmedSearchText)
@@ -220,6 +222,8 @@ extension ProgressSbpViewController: CustomSbpViewDelegate {
     func progressSbpView(_ progressSbpView: ProgressSbpView, didSelect row: Int) {
         presenter.stopPolling()
         presenter.didSelectRow(row)
+        contentView.removeFromSuperview()
+        showWaitScreen()
     }
     
     func progressSbpView(_ progressSbpView: ProgressSbpView, cellFor row: Int) -> Bank {
@@ -227,40 +231,31 @@ extension ProgressSbpViewController: CustomSbpViewDelegate {
     }
 }
 
-//MARK: - ProgressSbpViewControllerProtocol
+// MARK: - ProgressPaymentViewDelegate
+extension ProgressSbpViewController: ProgressPaymentViewDelegate {
+    func closePaymentButton() {
+        resultPayment(result: .close, error: nil, transaction: nil)
+    }
+}
 
+// MARK: - ProgressSbpViewControllerProtocol
 extension ProgressSbpViewController: ProgressSbpViewControllerProtocol {
-    
     func showAlert(message: String?, title: String?) {
-        showAlert(title: title, message: message)
+        showAlert(title: title, message: message) { [weak self] in
+            guard let self, let parent = self.presentingViewController else { return }
+            self.dismiss(animated: false) {
+                PaymentOptionsViewController.present(
+                    with: self.presenter.configuration,
+                    from: parent,
+                    skipLoader: true
+                )
+                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: self.presenter.configuration)
+            }
+        }
     }
     
     func presentError(_ error: String? = nil) {
-        
-        guard let parent = self.presentingViewController else { return }
-        
-        if let safariViewController = UIApplication.topViewController() as? SafariViewController {
-            safariViewController.dismiss(animated: false)
-        }
-        
-        if let delegate = delegate {
-            
-            if presenter.configuration.showResultScreen {
-                self.dismiss(animated: false) {
-                    PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .declined(error), from: parent)
-                }
-            }
-            
-            delegate.resultPayment(.error, error: error, transactionId: nil)
-            
-            return
-        }
-        
-        presentesionView(false) {
-            self.dismiss(animated: false) {
-                PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .declined(error),from: parent)
-            }
-        }
+        resultPayment(result: .error, error: error, transaction: nil)
     }
     
     func openSafariViewController(_ url: URL) {
@@ -282,44 +277,37 @@ extension ProgressSbpViewController: ProgressSbpViewControllerProtocol {
         }
     }
     
-    func resultPayment(result: PaymentSbpView.PaymentAction, error: String?, transaction: PaymentTransactionResponse?) {
+    func resultPayment(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?
+    ) {
+        let configuration = presenter.configuration
+        guard let parent = presentingViewController else { return }
         
-        guard let parent = self.presentingViewController else { return }
-        
-        if let safariViewController = UIApplication.topViewController() as? SafariViewController {
-            safariViewController.dismiss(animated: false)
-        }
-        
-        if let delegate = delegate {
-            
-            if presenter.configuration.showResultScreen {
-                self.dismiss(animated: false) {
-                    self.openResultScreens(result, error, transaction, parent)
-                }
+        /// showResultScreen = true, singlePaymentMethod = true
+        if configuration.paymentData.singlePaymentMethod {
+            if configuration.showResultScreen {
+                handleSingleMethodResultScreen(result: result,
+                                               error: error,
+                                               transaction: transaction,
+                                               configuration: configuration,
+                                               parent: parent)
+            } else {
+                /// showResultScreen = false, singlePaymentMethod = true
+                handleSingleMethodNoResultScreen(result: result,
+                                                 error: error,
+                                                 transaction: transaction,
+                                                 configuration: configuration)
             }
-            
-            delegate.resultPayment(result, error: error, transactionId: transaction?.transactionId)
-            return
+        } else {
+            /// showResultScreen = false, singlePaymentMethod = false
+            handleStandartMethodResultScreen(result: result,
+                                            error: error,
+                                            transaction: transaction,
+                                            configuration: configuration,
+                                            parent: parent)
         }
-        
-        presentesionView(false) {
-            self.dismiss(animated: false) {
-                self.openResultScreens(result, error, transaction, parent)
-            }
-        }
-    }
-    
-    func openResultScreens(_ result: PaymentSbpView.PaymentAction,  _ error: String?,  _ transaction: PaymentTransactionResponse?, _ parent: UIViewController) {
-        
-        switch result {
-        case .success:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .completed(transaction), from: parent)
-        case .error:
-            PaymentProcessForm.present(with: self.presenter.configuration, cryptogram: nil, email: nil, state: .declined(error), from: parent)
-        case .close:
-            PaymentOptionsForm.present(with: self.presenter.configuration, from: parent)
-        }
-        
     }
     
     func tableViewReloadData() {
@@ -327,11 +315,111 @@ extension ProgressSbpViewController: ProgressSbpViewControllerProtocol {
     }
 }
 
-//MARK: SFSafariViewControllerDelegate
+// MARK: - Result handling
+private extension ProgressSbpViewController {
+    func handleSingleMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
+        presentationView(false) {
+            self.dismiss(animated: false) {
+                switch result {
+                case .success:
+                    let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                    PaymentResultViewController.present(from: parent, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                        configuration.paymentDelegate.paymentFinished(transaction)
+                        configuration.paymentDelegate.paymentClosed()
+                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                    }
+                    AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+                case .error:
+                    PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                        configuration.paymentDelegate.paymentFailed(error)
+                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                    }
+                    AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+                case .close:
+                    configuration.paymentDelegate.paymentClosed()
+                }
+            }
+        }
+    }
+    
+    func handleSingleMethodNoResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration
+    ) {
+        presentationView(false) {
+            self.dismiss(animated: true) {
+                switch result {
+                case .success:
+                    configuration.paymentDelegate.paymentFinished(transaction)
+                case .error:
+                    configuration.paymentDelegate.paymentFailed(error)
+                case .close:
+                    configuration.paymentDelegate.paymentClosed()
+                }
+            }
+        }
+    }
+    
+    func handleStandartMethodResultScreen(
+        result: PaymentResultAction,
+        error: String?,
+        transaction: PaymentTransactionResponse?,
+        configuration: PaymentConfiguration,
+        parent: UIViewController
+    ) {
+        presentationView(false) {
+            self.dismissSafariIfNeeded { 
+                self.dismiss(animated: false) {
+                    switch result {
+                    case .success:
+                        let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                        PaymentResultViewController.present(from: parent, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                            configuration.paymentDelegate.paymentFinished(transaction)
+                            configuration.paymentDelegate.paymentClosed()
+                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                        }
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+                        
+                    case .error:
+                        PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
+                            configuration.paymentDelegate.paymentFailed(error)
+                            PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                            AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                        }
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+                    case .close:
+                        configuration.paymentDelegate.paymentClosed()
+                        PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ChooseOtherMethod", elementType: "Button", actionType: "Click", screenName: "/methods")
+                        AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                    }
+                }
+            }
+        }
+    }
+}
 
+// MARK: - SFSafariViewControllerDelegate
 extension ProgressSbpViewController: SFSafariViewControllerDelegate {
     func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
         presenter.stopPolling()
         print("Safari закрыт, polling остановлен")
+    }
+    
+    private func dismissSafariIfNeeded(completion: @escaping () -> Void) {
+        if let safari = presentedViewController as? SFSafariViewController {
+            safari.dismiss(animated: false, completion: completion)
+        } else {
+            completion()
+        }
     }
 }

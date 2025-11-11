@@ -93,6 +93,7 @@ public struct PaymentIntentResponse: Codable {
     let retryPayment: Bool?
     let autoClose: Bool?
     let cryptogramMode: Bool?
+    let recurrent: Recurrent?
 }
 
 public struct SberPayResponse: Codable {
@@ -147,12 +148,6 @@ struct PaymentMethod: Codable {
     let banks: [Bank]?
 }
 
-public enum PaymentMethodType: String {
-    case tpay = "TinkoffPay"
-    case sberPay = "SberPay"
-    case sbp = "Sbp"
-}
-
 struct Bank: Codable {
     let bankName: String?
     let logoUrl: String?
@@ -200,24 +195,4 @@ enum IntentSaveCardState: String {
     case force = "Force"
     case classic = "Classic"
     case new = "New"
-}
-
-class SDKConfiguration {
-    var email: String?
-    var terminalUrl: String? = nil
-    var saveCard: Bool? = nil
-    var cryptogram: String?
-    var isCvvRequired: Bool?
-    var isAllowedNotSanctionedCards: Bool? = nil
-    var isQiwi: Bool? = nil
-    var intentId: String? = nil
-    var paymentLinks: [String: String] = [:]
-    var sberPayData: String?
-    var sbpBanks: [Bank]?
-    var intentSaveCardState: IntentSaveCardState?
-    var savedTokenize: Bool? = nil
-    var pem: String?
-    var version: Int?
-    var secret: String?
-    var terminalFullUrl: String? = nil
 }

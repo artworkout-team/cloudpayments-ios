@@ -8,13 +8,20 @@
 import UIKit
 
 extension UILabel {
-    convenience init(text: String, textColor: UIColor, fontSize: CGFloat) {
+    convenience init(
+        text: String? = nil,
+        textColor: UIColor = .label,
+        fontSize: CGFloat = 17,
+        weight: UIFont.Weight = .regular,
+        alignment: NSTextAlignment = .left,
+        numberOfLines: Int = 0
+    ) {
         self.init()
         self.text = text
         self.textColor = textColor
-        self.font = UIFont.boldSystemFont(ofSize: fontSize)
-        self.textAlignment = .center
-        self.numberOfLines = 0
+        self.font = .systemFont(ofSize: fontSize, weight: weight)
+        self.textAlignment = alignment
+        self.numberOfLines = numberOfLines
     }
     
     func addSpacing(text: String? = "", _ spacing: CGFloat) {

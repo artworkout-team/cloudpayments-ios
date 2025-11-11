@@ -56,7 +56,6 @@ final class DemoViewController: BaseViewController {
         
         footer.frame = CGRect(x: Constants.position.toCGFloat(), y: Constants.position.toCGFloat(), width: Constants.footerWidth.toCGFloat(), height: Constants.footerHeight.toCGFloat())
         footer.addTarget(target: self, action: #selector(run(_:)), .demo)
-        footer.addTarget(target: self, action: #selector(singlePaymentMethodsButtonRun(_:)), .single)
         tableView.tableFooterView = footer
     }
     
@@ -67,81 +66,13 @@ final class DemoViewController: BaseViewController {
         return nil
     }
     
-    //MARK: - Single Payment Methods
-    
-    @objc private func singlePaymentMethodsButtonRun(_ sender: UIButton) {
-        
-        guard let apiUrl = getText(.api),
-              let publicId =  getText(.publicId),
-              let amount = getText(.amount),
-              let currency = getText(.currency),
-              let invoiceId =  getText(.invoiceId),
-              let descript = getText(.description),
-              let account = getText(.accountId),
-              let email = getText(.email),
-              let payerFirstName = getText(.payerFirstName),
-              let payerLastName = getText(.payerLastName),
-              let payerMiddleName = getText(.payerMiddleName),
-              let payerBirthday = getText(.payerBirthday),
-              let payerAddress = getText(.payerAddress),
-              let payerStreet = getText(.payerStreet),
-              let payerCity = getText(.payerCity),
-              let payerCountry = getText(.payerCountry),
-              let payerPhone = getText(.payerPhone),
-              let payerPostcode = getText(.payerPostcode),
-              let jsonData = getText(.jsonData)
-        else { return }
-        
-        let payer = PaymentDataPayer(
-            firstName: payerFirstName,
-            lastName: payerLastName,
-            middleName: payerMiddleName,
-            birth: payerBirthday,
-            address: payerAddress,
-            street: payerStreet,
-            city: payerCity,
-            country: payerCountry,
-            phone: payerPhone,
-            postcode: payerPostcode
-        )
-        
-        let paymentData = PaymentData()
-            .setAmount(amount)
-            .setCurrency(currency)
-            .setApplePayMerchantId(Constants.applePayMerchantID)
-            .setCardholderName("CP SDK")
-            .setInvoiceId(invoiceId)
-            .setDescription(descript)
-            .setAccountId(account)
-            .setPayer(payer)
-            .setEmail(email)
-            .setJsonData(jsonData)
-        
-        let configuration = PaymentConfiguration(
-            publicId: publicId,
-            paymentData: paymentData,
-            useDualMessagePayment: footer.demoActionSwitch.isOn,
-            apiUrl: apiUrl,
-            saveCardSinglePaymentMode: false,
-            showResultScreen: false
-        )
-        
-        self.dismiss(animated: true) { [weak self] in
-            let testController = TestSinglePaymentMethodsController()
-            testController.configuration = configuration
-            testController.modalPresentationStyle = .formSheet
-            self?.present(testController, animated: true)
-        }
-    }
-    
     // MARK: - Standart Form
     
     @objc private func run(_ sender: UIButton) {
         
         PaymentViewModel.saving(viewModels)
     
-        guard let apiUrl = getText(.api),
-              let publicId =  getText(.publicId),
+        guard let publicId =  getText(.publicId),
               let amount = getText(.amount),
               let currency = getText(.currency),
               let invoiceId =  getText(.invoiceId),
@@ -163,14 +94,13 @@ final class DemoViewController: BaseViewController {
         
         let item = Receipt.Item(
             label: descript,
-            price: 300.0,
-            quantity: 3.0,
-            amount: 900.0,
-            vat: 20,
+            price: 1.95,
+            quantity: 1,
+            amount: 1.95,
             method: 0,
             object: 0
         )
-
+        
         let receipt = Receipt(
             items: [item],
             taxationSystem: 0,
@@ -178,18 +108,18 @@ final class DemoViewController: BaseViewController {
             phone: payerPhone,
             isBso: false,
             amounts: Receipt.Amounts(
-                electronic: 900.0,
+                electronic: 1.95,
                 advancePayment: 0.0,
                 credit: 0.0,
                 provision: 0.0
             )
         )
-
+        
         let recurrent = Recurrent(
-            interval: "Month",
+            interval: "Week",
             period: 1,
             customerReceipt: receipt,
-            amount: 99.99
+            amount: 1.95
         )
         
         let payer = PaymentDataPayer(
@@ -216,7 +146,6 @@ final class DemoViewController: BaseViewController {
             .setPayer(payer)
             .setEmail(email)
             .setJsonData(jsonData)
-            .setCultureName("RU-ru")
 //            .setReceipt(receipt)
 //            .setRecurrent(recurrent)
         
@@ -226,14 +155,15 @@ final class DemoViewController: BaseViewController {
             delegate: self,
             uiDelegate: self,
             scanner: nil,
-            requireEmail: false,
+            emailBehavior: .optional,
+            paymentMethodSequence: [],
             useDualMessagePayment: footer.demoActionSwitch.isOn,
-            disableApplePay: true
-//            successRedirectUrl: "https://ya.ru",
-//            failRedirectUrl: "https://ya.ru"
+            disableApplePay: true,
+            showResultScreen: false
+            // successRedirectUrl: "https://ya.ru",
+            // failRedirectUrl: "https://ya.ru",
         )
-        
-        PaymentForm.present(with: configuration, from: self)
+        PaymentOptionsViewController.present(with: configuration, from: self)
     }
 }
 
@@ -261,14 +191,10 @@ extension DemoViewController: UITableViewDelegate, UITableViewDataSource {
 
 // MARK: - PaymentDelegate
 extension DemoViewController: PaymentDelegate {
-    func paymentFinishedIntentApi(_ transaction: Int64?) {
-        navigationController?.popViewController(animated: true)
-        
-        if let transactionId = transaction {
-            print("Transaction finished with ID: \(transactionId)")
-        }
+    func onPaymentClosed() {
+        print("Payment form was closed")
     }
-    
+        
     func onPaymentFinished(_ transactionId: Int64?) {
         navigationController?.popViewController(animated: true)
         

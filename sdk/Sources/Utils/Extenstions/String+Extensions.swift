@@ -12,6 +12,7 @@ extension String {
     static let tPayTransactionPolling = "TPayTransactionPolling"
     static let sberPayTransactionPolling = "SberPayTransactionPolling"
     static let sbpTransactionPolling = "SbpTransactionPolling"
+    static let dolyameTransactionPolling = "SbpTransactionPolling"
     
     static let bundleName = "CloudpaymentsSdkResources"
     static let errorWord = "Ошибка"
@@ -27,8 +28,11 @@ extension String {
     static let notFound = "Ничего не найдено"
     static let searchBankApp = "Поиск банка"
     
-    static let payResponse = "Ждем ответа от TPay"
-    static let payResponseSberPay = "Ждем ответа от SberPay"
+    static let payResponseTPay = "Ждем ответа от"
+    static let payResponseSbp = "Ждем ответа от банка"
+    static let payResponseSberPay = "Ждем ответа от"
+    static let payResponseDolyame = "Ждем ответа от"
+    static let payResponseCardPay = "Оплата в процессе"
     static let failedPay = "Если перейти и оплатить в приложении не удалось, попробуйте снова или выберите другой способ оплаты"
     static let paymentMethod = "Выбрать способ оплаты"
     static let anotherPaymentMethod = "Выбрать способ оплаты"
@@ -39,6 +43,8 @@ extension String {
     static let banksAppNotOpen = "Не удалось открыть приложение банка, выберите другой способ оплаты"
     static let chooseBank = "Выберите банк для подтверждения оплаты"
     static let orderAlreadyBeenPaid = "Этот заказ уже оплачен"
+    static let orderPaid = "Оплата заказа"
+    static let errorDescription = "Описание ошибки"
     
     static let RUBLE_SIGN = "\u{20BD}"
     static let EURO_SIGN = "\u{20AC}"

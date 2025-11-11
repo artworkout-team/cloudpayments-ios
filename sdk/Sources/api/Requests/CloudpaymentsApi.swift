@@ -1,50 +1,16 @@
-
 import CloudpaymentsNetworking
 import Foundation
 import UIKit
 
-public struct ButtonConfiguration {
-    public let isOnTPayButton: Bool
-    public let isOnSbpButton: Bool
-    public let isOnSberPayButton: Bool
-    public let successRedirectUrl: String?
-    public let failRedirectUrl: String?
-    let isTest: Bool?
-    
-    init(isOnTPayButton: Bool, isOnSbpButton: Bool, isOnSberPayButton: Bool, successRedirectUrl: String? = nil, failRedirectUrl: String? = nil, isTest: Bool? = nil) {
-        self.isOnTPayButton = isOnTPayButton
-        self.isOnSbpButton = isOnSbpButton
-        self.isOnSberPayButton = isOnSberPayButton
-        self.successRedirectUrl = successRedirectUrl
-        self.failRedirectUrl = failRedirectUrl
-        self.isTest = isTest
-    }
-}
-
-
 public class CloudpaymentsApi {
-    enum Source: String {
-        case cpForm = "Cloudpayments SDK iOS (Default form)"
-        case ownForm = "Cloudpayments SDK iOS (Custom form)"
-    }
-    
     public static let baseURLString = "https://api.cloudpayments.ru/"
     public static let baseIntentURLString = "https://intent-api.cloudpayments.ru/"
-    
-    private let defaultCardHolderName = "Cloudpayments SDK"
-    
     private let threeDsSuccessURL = "https://cloudpayments.ru/success"
     private let threeDsFailURL = "https://cloudpayments.ru/fail"
-    
     private let publicId: String
     private let apiUrl: String
-    private let source: Source
-    
-    public required convenience init(publicId: String, apiUrl: String = baseURLString) {
-        self.init(publicId: publicId, apiUrl: apiUrl, source: .ownForm)
-    }
-    
-    init(publicId: String, apiUrl: String = baseURLString, source: Source) {
+        
+    init(publicId: String, apiUrl: String = baseURLString) {
         self.publicId = publicId
         
         if (apiUrl.isEmpty) {
@@ -52,8 +18,6 @@ public class CloudpaymentsApi {
         } else {
             self.apiUrl = apiUrl
         }
-        
-        self.source = source
     }
     
     public class func getBankInfo(cardNumber: String,
@@ -113,47 +77,6 @@ public class CloudpaymentsApi {
             LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
         }
     }
-    
-    public class func getMerchantConfiguration(configuration: PaymentConfiguration,
-                                               completion: @escaping (ButtonConfiguration?) -> Void) {
-        let request = ConfigurationRequest(queryItems: ["terminalPublicId" : configuration.publicId],
-                                           apiUrl: configuration.apiUrl)
-        
-        request.execute { result in
-            var isOnTPay = false
-            var isOnSbp = false
-            var isOnSberPay = false
-            
-            for element in result.model.externalPaymentMethods {
-                guard let rawValue = element.type, let value = CaseOfBank(rawValue: rawValue) else { continue }
-                
-                switch value {
-                case .tPay: isOnTPay = element.enabled
-                case .sbp: isOnSbp = element.enabled
-                case .sberPay: isOnSberPay = element.enabled
-                }
-            }
-            
-            let value = ButtonConfiguration(isOnTPayButton: isOnTPay,
-                                            isOnSbpButton: isOnSbp,
-                                            isOnSberPayButton: isOnSberPay,
-                                            successRedirectUrl: result.model.terminalFullUrl,
-                                            failRedirectUrl: result.model.terminalFullUrl,
-                                            isTest: result.model.isTest)
-            
-            completion(value)
-            
-            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
-            
-        } onError: { error in
-            
-            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
-            
-            print(error.localizedDescription)
-            return completion(.init(isOnTPayButton: false, isOnSbpButton: false, isOnSberPayButton: false, isTest: false))
-        }
-    }
-    
     
     public class func getSbpLinkIntentApi(puid: String,
                                           schema: String,
@@ -246,6 +169,7 @@ public class CloudpaymentsApi {
     }
     
     public class func createIntent(with configuration: PaymentConfiguration,
+                                   paymentMethodSequence: [String],
                                    completion handler: @escaping (PaymentIntentResponse?) -> Void) {
         
         let publicId = configuration.publicId
@@ -257,7 +181,6 @@ public class CloudpaymentsApi {
         let accountId = configuration.paymentData.accountId
         let email = configuration.paymentData.email
         let paymentUrl = "cloudpayments://sdk.cp.ru"
-        let culture = configuration.paymentData.cultureName
         let payer = configuration.paymentData.payer
         let recurrent = configuration.paymentData.recurrent?.toDictionary()
         let receipt = configuration.paymentData.receipt?.toDictionary()
@@ -278,7 +201,7 @@ public class CloudpaymentsApi {
             "publicTerminalId": publicId,
             "currency": currency,
             "paymentSchema": sсheme.rawValue,
-            "culture": culture,
+            "culture": "RU-ru",
             "type": type,
             "scenario": scenario,
             "amount": amount,
@@ -298,6 +221,7 @@ public class CloudpaymentsApi {
                 "phone": payer?.phone,
                 "postcode": payer?.postcode
             ],
+            "paymentMethodSequence": paymentMethodSequence,
             "recurrent": recurrent,
             "receipt": receipt,
             "metadata": metadata,
@@ -310,13 +234,10 @@ public class CloudpaymentsApi {
                                           apiUrl: baseIntentURLString)
         request.execute { result in
             handler(result)
-            
             LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
-            
         } onError: { error in
-            print(error.localizedDescription)
+            print("createIntent error:", error.localizedDescription)
             handler(nil)
-            
             LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
         }
     }
@@ -389,6 +310,39 @@ public class CloudpaymentsApi {
         }
     }
     
+    public class func getDolyameLinkIntentApi(puid: String,
+                                           configuration: PaymentConfiguration,
+                                           completion handler: @escaping (Int?, String?) -> Void) {
+        let queryItems = [
+            "webview": "false",
+            "puid": puid
+        ]
+        
+        guard let tpayLink = configuration.paymentData.paymentLinks["Dolyame"] else {
+            print("[getDolyameLinkIntentApi] Ссылка Dolyame отсутствует в paymentLinks")
+            handler(nil, nil)
+            return
+        }
+        
+        print("[getDolyameLinkIntentApi] Ссылка Dolyame: \(tpayLink)")
+        
+        let request = DolyameLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: tpayLink)
+        
+        print("[getDolyameLinkIntentApi] Формируем запрос с URL: \(tpayLink)")
+        print("[getDolyameLinkIntentApi] Query Items: \(queryItems)")
+        
+        request.executeWithStatusCode { statusCode, resultLink in
+            print("[getDolyameLinkIntentApi] Получена ссылка: \(resultLink)")
+            handler(statusCode, resultLink)
+            
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
+            
+        } onError: { statusCode, error in
+            handler(statusCode, nil)
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
+        }
+    }
+    
     public class func getIntentWaitStatus(_ configuration: PaymentConfiguration,
                                           type: PaymentMethodType,
                                           completion: @escaping (Int?) -> Void) {
@@ -404,6 +358,10 @@ public class CloudpaymentsApi {
             observerName = ObserverKeys.intentSberPayObserver.key
         case .sbp:
             observerName = ObserverKeys.intentSbpObserver.key
+        case .card:
+            observerName = ObserverKeys.intentCardObserver.key
+        case .dolyame:
+            observerName = ObserverKeys.intentDolyameObserver.key
         }
         
         request.executeWithStatusCode { statusCode, value in
@@ -421,7 +379,7 @@ public class CloudpaymentsApi {
         }
     }
     
-    public func createIntentApiPay(cardCryptogram: String,
+    public func intentApiPay(cardCryptogram: String,
                                    with configuration: PaymentConfiguration,
                                    completion: @escaping (Int?, PaymentIntentResponse?) -> Void) {
         
@@ -529,5 +487,35 @@ extension CloudpaymentsApi {
             }
         }.resume()
     }
+    
+    public class func post<T: Encodable>(to endpoint: String, body: [T], completion: ((Result<Void, Error>) -> Void)? = nil) {
+        guard let url = URL(string: endpoint) else {
+            completion?(.failure(CloudpaymentsError.networkError))
+            return
+        }
+        do {
+            let data = try JSONEncoder().encode(body)
+            if let json = String(data: data, encoding: .utf8) {
+                print("------------>>>>> Analytics JSON payload:\n\(json)")
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = data
+            
+            URLSession.shared.dataTask(with: request) { _, response, error in
+                if let http = response as? HTTPURLResponse {
+                    print("Analytics sent — Status:", http.statusCode)
+                    completion?(.success(()))
+                } else if let error = error {
+                    print("Analytics send error:", error)
+                    completion?(.failure(error))
+                }
+            }.resume()
+        } catch {
+            print("Encoding error:", error)
+            completion?(.failure(error))
+        }
+    }
 }
-

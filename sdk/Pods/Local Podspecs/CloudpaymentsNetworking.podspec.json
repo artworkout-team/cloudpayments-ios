@@ -10,7 +10,7 @@
     "Sergey Iskhakov": "s.iskhakov@cloudpayments.ru"
   },
   "platforms": {
-    "ios": "13.0"
+    "ios": "15.0"
   },
   "source": {
     "git": "https://github.com/cloudpayments/CloudPayments-Networking-iOS.git",

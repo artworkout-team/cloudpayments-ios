@@ -12,7 +12,6 @@ import Foundation
 class FooterActionView: UIView {
     @IBOutlet weak var demoActionButton: UIButton!
     @IBOutlet weak var demoActionSwitch: UISwitch!
-    @IBOutlet weak var singlePaymentMethodsButtonAction: UIButton!
     @IBOutlet weak var demoLabel: UILabel!
     
     // MARK: - Init
@@ -28,7 +27,6 @@ class FooterActionView: UIView {
     // MARK: - Private methods
     private func setupLayoutForButton() {
         demoActionButton.layer.cornerRadius = 8
-        singlePaymentMethodsButtonAction.layer.cornerRadius = 8
     }
     
     private func setupXib() {
@@ -43,8 +41,6 @@ class FooterActionView: UIView {
         switch type {
         case .demo:
             demoActionButton.addTarget(target, action: action, for: .touchUpInside)
-        case .single:
-            singlePaymentMethodsButtonAction.addTarget(target, action: action, for: .touchUpInside)
         }
     }
 }
@@ -52,6 +48,5 @@ class FooterActionView: UIView {
 extension FooterActionView {
     enum ButtonType {
         case demo
-        case single
     }
 }

@@ -19,8 +19,20 @@ extension UIImage {
         return UIImage()
     }
     
+    public class var iconDolyame: UIImage {
+        return self.named("icon_dolyame_button")
+    }
+    
+    public class var iconDolyameAdditional: UIImage {
+        return self.named("icon_dolyame_additional")
+    }
+    
     public class var iconTPay: UIImage {
         return self.named("ic_tpay")
+    }
+    
+    public class var iconSberPayAdditional: UIImage {
+        return self.named("icon_sber_pay_additional")
     }
     
     public class var iconSberPay: UIImage {
@@ -28,7 +40,19 @@ extension UIImage {
     }
     
     public class var iconSbp: UIImage {
-        return self.named("icon_sbp_button_new")
+        return self.named("icon_sbp_button")
+    }
+    
+    public class var iconSbpAdditional: UIImage {
+        return self.named("icon_sbp_button_additional")
+    }
+    
+    public class var iconTpayAdditional: UIImage {
+        return self.named("icon_tpay_additional")
+    }
+    
+    public class var iconCardAdditional: UIImage {
+        return self.named("icon_card_additional")
     }
     
     public class var iconProgress: UIImage {
@@ -65,6 +89,18 @@ extension UIImage {
     
     public class var iconLogo: UIImage {
         return self.named("footerLogoPayments")
+    }
+    
+    public class var ic_button_logo: UIImage {
+        return self.named("ic_button_loader")
+    }
+    
+    public class var iconMethodSberPay: UIImage {
+        return self.named("icon_method_sber_pay")
+    }
+    
+    public class var iconMethodDolyame: UIImage {
+        return self.named("icon_method_dolyame")
     }
 }
 

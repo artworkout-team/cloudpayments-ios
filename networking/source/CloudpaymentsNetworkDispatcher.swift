@@ -47,6 +47,9 @@ public class CloudpaymentsURLSessionNetworkDispatcher: NSObject, CloudpaymentsNe
             do {
                 urlRequest.httpBody = try JSONSerialization.data(withJSONObject: request.params, options: [])
                 print("[dispatch] Сериализованное тело из params: \(request.params)")
+                if let json = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
+                    print("------------>>>>> Final JSON:\n\(json)")
+                }
             } catch let error {
                 print("[dispatch] Ошибка сериализации параметров: \(error.localizedDescription)")
                 onError(error)
@@ -64,7 +67,7 @@ public class CloudpaymentsURLSessionNetworkDispatcher: NSObject, CloudpaymentsNe
         urlRequest.allHTTPHeaderFields = headers
         
         print("[dispatch] Заголовки запроса: \(urlRequest.allHTTPHeaderFields ?? [:])")
-        print("[dispatch] URL: \(urlRequest.url?.absoluteString ?? "nil")")
+        print("[dispatch] \(request.method) → \(urlRequest.url?.absoluteString ?? "")")
         
         session.dataTask(with: urlRequest) { (data, response, error) in
             if let error = error {
@@ -141,8 +144,6 @@ public class CloudpaymentsURLSessionNetworkDispatcher: NSObject, CloudpaymentsNe
             }
         }.resume()
     }
-    
-    
 }
 
 extension CloudpaymentsURLSessionNetworkDispatcher: URLSessionTaskDelegate {

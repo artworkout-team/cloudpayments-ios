@@ -238,3 +238,10 @@ extension TextField {
         set {self.text = newValue?.onlyNumbers().formattedString(mask: "XX / XX", ignoredSymbols: nil)}
     }
 }
+
+extension UITextField {
+    var expCardText: String? {
+        get { self.text }
+        set { self.text = newValue?.onlyNumbers().formattedString(mask: "XX / XX", ignoredSymbols: nil) }
+    }
+}

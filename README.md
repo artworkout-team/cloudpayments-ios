@@ -3,18 +3,19 @@
 CloudPayments SDK позволяет интегрировать прием платежей в мобильные приложения для платформы iOS.
 
 ### Требования
-Для работы CloudPayments SDK необходим iOS версии 13.0 и выше.
+Для работы CloudPayments SDK необходим iOS версии 15.0 и выше.
 
 ### Подключение
 Для подключения SDK вы можете использовать Swift Package Manager или CocoaPods.
 
-* Для подключенмя через Swift Package Manager используйте меню File -> Add Package Dependencies, найдите SDK используя Package URL - https://gitpub.cloudpayments.ru/integrations/sdk/cloudpayments-ios и добавьте зависимость в проект.
-* Для подключенмя через CocoaPods добавьте в файл Podfile зависимости:
+* Для подключения через Swift Package Manager используйте меню File -> Add Package Dependencies, найдите SDK используя Package URL - https://gitpub.cloudpayments.ru/integrations/sdk/cloudpayments-ios и добавьте зависимость в проект.
+* Для подключения через CocoaPods добавьте в файл Podfile зависимости:
 
 ```
 pod 'Cloudpayments', :git =>  "https://gitpub.cloudpayments.ru/integrations/sdk/cloudpayments-ios", :branch => "master"
 pod 'CloudpaymentsNetworking', :git =>  "https://gitpub.cloudpayments.ru/integrations/sdk/cloudpayments-ios", :branch => "master"
 ```
+
 ### Структура проекта:
 
 * **demo** - Пример реализации приложения с использованием SDK
@@ -61,12 +62,12 @@ let recurrent = Recurrent(
             period: 1,
             customerReceipt: receipt, 
             amount: 99.99)
-
+            
 // Доп. поле, куда передается информация о плательщике. Используйте следующие параметры: FirstName, LastName, MiddleName, Birth, Street, Address, City, Country, Phone, Postcode
 let payer = PaymentDataPayer(firstName: "Test", lastName: "Testov", middleName: "Testovich", birth: "1955-02-22", address: "home 6", street: "Testovaya", city: "Moscow", country: "RU", phone: "89991234567", postcode: "12345")
     
 // Указывайте дополнительные данные если это необходимо
-let jsonData = "\"age\":27, \"name\":\"Ivan\", \"phone\":\"+79998881122\"" // Любые другие данные, которые будут связаны с транзакцией, в том числе инструкции для создания подписки или формирования онлайн-чека должны обёртываться в объект cloudpayments. Мы зарезервировали названия следующих параметров и отображаем их содержимое в реестре операций, выгружаемом в Личном Кабинете: name, firstName, middleName, lastName, nick, phone, address, comment, birthDate.
+let jsonData: [String: Any] = ["age":27, "name":"Ivan", "phone":"+79998881122"] // Любые другие данные, которые будут связаны с транзакцией {name: Ivan}
 
 let paymentData = PaymentData() 
     .setAmount(String(totalAmount)) // Cумма платежа в валюте, максимальное количество не нулевых знаков после запятой: 2
@@ -78,10 +79,11 @@ let paymentData = PaymentData()
     .setEmail("test@cp.ru") // E-mail плательщика, на который будет отправлена квитанция об оплате
     .setPayer(payer) // Информация о плательщике
     .setJsonData(jsonData) // Любые другие данные, которые будут связаны с транзакцией
-    .setCultureName("RU-ru") // Данные по региону 
     .setReceipt(receipt) // Данные для чека
     .setRecurrent(recurrent) // Данные для подписки           
 ```
+
+1.1. За более подробной информацией по формированию чека, можно обратиться в [документацию CloudKassir](https://developers.cloudkassir.ru/)
 
 2. Создайте объект PaymentConfiguration, передайте в него объект PaymentData и ваш **Public_id** из [личного кабинета Cloudpayments](https://merchant.cloudpayments.ru/). Реализуйте протокол PaymentDelegate, чтобы узнать о завершении платежа
 
@@ -92,249 +94,28 @@ let configuration = PaymentConfiguration.init(
     delegate: self, // Вывод информации о завершении платежа
     uiDelegate: self, // Вывод информации о UI 
     scanner: nil, // Сканер банковских карт
-    requireEmail: true, // Обязательный email, (по умолчанию false)
+    emailBehavior: .optional, // Опции отображения поля Email (Optional - пользователь может включить/отключить поле, Required - поле обязательно для заполнения, Hidden - поле не отображается)
+    paymentMethodSequence: [.tpay, .card], // Порядок отображения платежных методов, если указать не все методы, тогда первыми буду отображены переданные методы, а остальные будут отображены в порядке по умолчанию
     useDualMessagePayment: true, // Использовать двухстадийную схему проведения платежа, (по умолчанию используется одностадийная схема)
     disableApplePay: true, // Выключить Apple Pay, (по умолчанию Apple Pay включен)
     successRedirectUrl: "", // Ваш deeplink для редиректа из приложения банка после успешной оплаты, (если ничего не передано, по умолчанию используется URL адрес вашего сайта)
     failRedirectUrl: "" //  Ваш deeplink для редиректа из приложения банка после неуспешной оплаты, (если ничего не передано, по умолчанию используется URL адрес вашего сайта)
 ```
-2.1. Для передачи deeplink при использовании CБП,TPay,SberPay нужно использовать Universal Links:
+2.1. Для передачи deeplink при использовании CБП,TPay,SberPay,Долями нужно использовать Universal Links:
 
 2.2. Документация от Apple: [Universal Links](https://developer.apple.com/documentation/xcode/supporting-universal-links-in-your-app)
 
 2.3. В вашем приложении реализуйте метод application(_:continue:restorationHandler:) в классе вашего AppDelegate для обработки Universal Links
 
-### Использование TPay в стандартной платёжной форме:
-
-1. Включить TPay в [личном кабинете Cloudpayments](https://merchant.cloudpayments.ru/).
-
-### Использование отдельной кнопки TPay:
-
-1. Включить TPay в [личном кабинете Cloudpayments](https://merchant.cloudpayments.ru/).
-
-2.Создайте объект PaymentTPayView и разместите его
-
-   ``` 
-    private lazy var tPayView = PaymentTPayView() 
-    
-    private func setupViews() {
-    
-    // делегат
-    tPayView.delegate = self 
-
-    view.addSubview(tPayView)
-
-    tPayView.backgroundColor = .black
-    tPayView.layer.cornerRadius = 8
-
-    tPayView.translatesAutoresizingMaskIntoConstraints = false
-
-    NSLayoutConstraint.activate([
-    tPayView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-    tPayView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-    tPayView.heightAnchor.constraint(equalToConstant: 50),
-    tPayView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-    ])
-    }
-   ```
-3.Создайте метод с конфигурацией  
-
-    private func addConfiguration() {
-
-    let jsonObject: [String: Any?] = [:]
-
-    func JSONStringify(value: [String: Any?], prettyPrinted:Bool = false) -> String {
-    let options = prettyPrinted ? JSONSerialization.WritingOptions.prettyPrinted : JSONSerialization.WritingOptions(rawValue: 0)
-    if JSONSerialization.isValidJSONObject(value) {
-    do {
-    let data = try JSONSerialization.data(withJSONObject: value, options: options)
-    if let string = NSString(data: data, encoding: NSUTF8StringEncoding) {
-    return string as String
-    }
-    } catch {
-
-    print("parsing error")
-        }
-    }
-    return ""
-    }
-
-    let dataString = JSONStringify(value: jsonObject) 
-
-    let paymentData = PaymentData()
-    .setAmount("10")
-    .setCurrency("RUB")
-    .setDescription("Корзина цветов")
-    .setAccountId("111")
-    .setInvoiceId("123")
-    .setEmail("test@cp.ru")
-    .setJsonData(dataString)
-
-    let configuration = PaymentConfiguration(
-    publicId: "", // // Ваш Public_id из личного кабинета
-    paymentData: paymentData, // Информация о платеже
-    successRedirectUrl: "" // Ваш deeplink для редиректа из приложения банка после успешной оплаты, (если ничего не передано, по умолчанию используется URL адрес вашего сайта)
-    failRedirectUrl: "" // Ваш deeplink для редиректа из приложения банка после неуспешной оплаты, (если ничего не передано, по умолчанию используется URL адрес вашего сайта)
-    useDualMessagePayment: true, // Использовать двухстадийную схему проведения платежа, (по умолчанию используется одностадийная схема)
-    saveCardMode: false, // Передача сохранения карты (только для отдельной кнопки)
-    showResultScreen: true)// Для включения экранов успеха и неуспеха для отдельных кнопок (по умолчанию false)
-
-    tPayView.configuration = configuration // передайте конфигурацию в объект PaymentTPayView
-    }
-    
-4.Создайте метод для проверки доступности TPay  
-    
-    private func checkButtons() {
-    tPayView.getMerchantConfiguration(publicId: merchantPublicId) { [ weak self ] result in
-    guard let self = self, let result = result else { return }
-    // проверка доступности TPay и её отображение 
-    self.tPayView.isHidden = !result.isOnTPayButton
-        }
-    }
-
-5.Подпишитесь на протокол PaymentTPayDelegate и обработайте результаты
-
-    extension TestSinglePaymentMethodsController: PaymentTPayDelegate {
-    func resultPayment(_ tPay: Cloudpayments.PaymentTPayView, result: Cloudpayments.PaymentTPayView.PaymentAction, error: String?, transactionId: Int64?) {
-        switch result {
-        case .success:
-            print("Оплата прошла успешно c транзакцией \(String(describing: transactionId))")
-        case .error:
-            print("Операция отклонена")
-        case .close:
-            print("Пользователь закрыл платёжную форму TPay")
-        }
-    } }
-    
-### Использование отдельной кнопки СБП:
-
-Включить СБП через вашего курирующего менеджера.
-
-1.Создайте объект PaymentSbpView и разместите его
-
-   ``` 
-    private lazy var sbpView = PaymentSbpView()
-    
-    private func setupViews() {
-    
-    // делегат
-    sbpView.delegate = self 
-
-    view.addSubview(sbpView)
-
-    sbpView.backgroundColor = .blue
-    sbpView.layer.cornerRadius = 8
-
-    sbpView.translatesAutoresizingMaskIntoConstraints = false
-
-    NSLayoutConstraint.activate([
-    sbpView.topAnchor.constraint(equalTo: tPayView.bottomAnchor, constant: 20),
-    sbpView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-    sbpView.heightAnchor.constraint(equalToConstant: 50),
-    sbpView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-    sbpView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-    ])
-    }
-   ```
-2.Создайте метод с конфигурацией  
-
-    private func addConfiguration() {
-
-    let jsonObject: [String: Any?] = [:]
-
-    func JSONStringify(value: [String: Any?], prettyPrinted:Bool = false) -> String {
-    let options = prettyPrinted ? JSONSerialization.WritingOptions.prettyPrinted : JSONSerialization.WritingOptions(rawValue: 0)
-    if JSONSerialization.isValidJSONObject(value) {
-    do {
-    let data = try JSONSerialization.data(withJSONObject: value, options: options)
-    if let string = NSString(data: data, encoding: NSUTF8StringEncoding) {
-    return string as String
-    }
-    } catch {
-
-    print("parsing error")
-        }
-    }
-    return ""
-    }
-
-    let dataString = JSONStringify(value: jsonObject) 
-
-    let paymentData = PaymentData()
-    .setAmount("10")
-    .setCurrency("RUB")
-    .setDescription("Корзина цветов")
-    .setAccountId("111")
-    .setInvoiceId("123")
-    .setEmail("test@cp.ru")
-    .setJsonData(dataString)
-
-    let configuration = PaymentConfiguration(
-    publicId: "", // // Ваш Public_id из личного кабинета
-    paymentData: paymentData, // Информация о платеже
-    useDualMessagePayment: false, // Использовать двухстадийную схему проведения платежа, (Для СБП используется одностадийная схема)
-    saveCardForSinglePaymentMode: false, // Галочка для сохранения или не сохранения карты (по умолчанию nil)
-    showResultScreen: true) // Для включения экранов успеха и неуспеха для отдельных кнопок (по умолчанию false)
-
-    sbpView.configuration = configuration // передайте конфигурацию в объект PaymentSbpView
-    }
-    
-3.Создайте метод для проверки доступности СБП  
-    
-    private func checkButtons() {
-    tpayView.getMerchantConfiguration(publicId: merchantPublicId) { [ weak self ] result in
-    guard let self = self, let result = result else { return }
-    // проверка доступности CБП и её отображение
-    self.sbpView.isHidden = !result.isOnSbpButton
-        }
-    }
-
-4.Подпишитесь на протокол PaymentSbpDelegate и обработайте результаты
-
-    extension TestSinglePaymentMethodsController: PaymentSbpDelegate {
-    func resultPayment(_ sbp: Cloudpayments.PaymentSbpView, result: Cloudpayments.PaymentSbpView.PaymentAction, error: String?, transactionId: Int64?) {
-        switch result {
-        case .success:
-            print("Оплата прошла успешно c транзакцией \(String(describing: transactionId))")
-        case .error:
-            print("Операция отклонена")
-        case .close:
-            print("Пользователь закрыл платежную форму со списком банков")
-        }
-    } }
-    
-### Использование СБП в стандартной платёжной форме: 
-
-Включить СБП через вашего курирующего менеджера.
-
-### Использование отдельной кнопки SberPay:
-
-1. Включить SberPay через вашего курирующего менеджера.
-
-2. Создайте объект PaymentSberPayView и разместите его
-
-3. Создайте метод для проверки доступности SberPay  
-    ```
-    private func checkButtons() {
-    tPayView.getMerchantConfiguration(publicId: merchantPublicId) { [ weak self ] result in
-    guard let self = self, let result = result else { return }
-    // проверка доступности SberPay и её отображение
-    self.sberPayView.isHidden = !result.isOnSberPayButton
-        } 
-    }
-    ```
-
-4. Подпишитесь на протокол PaymentSberPayDelegate и обработайте результаты
-
-### Использование SberPay в стандартной платёжной форме: 
-
-Включить SberPay через вашего курирующего менеджера.
-
-3. Вызовите форму оплаты внутри своего контроллера (Для стандартной формы)
+3. Вызовите форму оплаты внутри своего контроллера
 
 ```
-PaymentForm.present(with: configuration, from: self)
+PaymentOptionsViewController.present(with: configuration, from: self)
 ```
+### Использование T-Pay, SberPay, СБП, Долями в стандартной платежной форме:
+
+1. Включить необходимые опции в [личном кабинете Cloudpayments](https://merchant.cloudpayments.ru/).
+2. Если эти опции недоступны, обратитесь к курирующему вас менеджеру.
 
 ### Использование вашей платежной формы с использованием функций CloudPaymentsApi:
 
@@ -350,18 +131,7 @@ PaymentForm.present(with: configuration, from: self)
 let cardCryptogramPacket = Card.makeCardCryptogramPacket(cardNumber: cardNumber, expDate: expDate, cvv: cvv, merchantPublicID: "Ваш Public_id", publicKey: "Полученный публичный ключ", keyVersion: "Полученная версия ключа")
 ```
 
-4. Выполните запрос на проведения платежа. Создайте объект CloudpaymentApi и вызовите метод charge для одностадийного платежа или auth для двухстадийного. Укажите email, на который будет выслана квитанция об оплате.
-
-```
-let api = CloudpaymentsApi.init(publicId: Constants.merchantPulicId)
-api.auth(cardCryptogramPacket: cardCryptogramPacket, cardHolderName: cardHolderName, email: nil, amount: String(total)) { [weak self] (response, error) in
-    if let response = response {
-        self?.checkTransactionResponse(transactionResponse: response, completion: completion)
-    } else if let error = error {
-        completion?(false, error.localizedDescription)
-    }
-}
-```
+4. Выполните запрос на проведения платежа (см. [документацию по API](https://developers.cloudpayments.ru/#oplata-po-kriptogramme)).
 
 5. Если необходимо, покажите 3DS форму для подтверждения платежа
 
@@ -391,165 +161,14 @@ extension CheckoutViewController: ThreeDsDelegate {
         hideThreeDs()
         print("error: \(html)")
     }
-
-}
-```
-
-#### Оплата с помощью Apple Pay с CloudPaymentsApi
-
-[Об Apple Pay](https://developers.cloudpayments.ru/#apple-pay)
-
-1. Создайте массив объектов PKPaymentSummaryItem используя информацию о товарах выбранных вашим клиентом
-```
-var paymentItems: [PKPaymentSummaryItem] = []
-for product in CartManager.shared.products {
-    let paymentItem = PKPaymentSummaryItem.init(label: product.name, amount: NSDecimalNumber(value: Int(product.price)!))
-    paymentItems.append(paymentItem)
-}
-```
-2. Укажите ваш Apple Pay ID и допустимые платежные системы
-```
-let applePayMerchantID = "merchant.com.YOURDOMAIN" // Ваш ID для Apple Pay
-let paymentNetworks = [PKPaymentNetwork.visa, PKPaymentNetwork.masterCard] // Платежные системы для Apple Pay
-```
-3. Проверьте, доступны ли пользователю эти платежные системы
-```
-buttonApplePay.isHidden = !PKPaymentAuthorizationViewController.canMakePayments(usingNetworks: paymentNetworks) // Скройте кнопку Apple Pay если пользователю недоступны указанные вами платежные системы
-```
-4. Создайте и выполните запрос к Apple Pay
-```
-let request = PKPaymentRequest()
-request.merchantIdentifier = applePayMerchantID
-request.supportedNetworks = paymentNetworks
-request.merchantCapabilities = PKMerchantCapability.capability3DS // Возможно использование 3DS
-request.countryCode = "RU" // Код страны
-request.currencyCode = "RUB" // Код валюты
-request.paymentSummaryItems = paymentItems
-let applePayController = PKPaymentAuthorizationViewController(paymentRequest: request)
-applePayController?.delegate = self
-self.present(applePayController!, animated: true, completion: nil)
-```
-5. Обрабатываем ответ от Apple Pay
-```
-extension CheckoutViewController: PKPaymentAuthorizationViewControllerDelegate {
-    func paymentAuthorizationViewController(_ controller: PKPaymentAuthorizationViewController, didAuthorizePayment payment: PKPayment, completion: @escaping ((PKPaymentAuthorizationStatus) -> Void)) {
-        completion(PKPaymentAuthorizationStatus.success)
-        
-        // Конвертируйте объект PKPayment в строку криптограммы
-        guard let cryptogram = payment.convertToString() else {
-            return
-        }
-               
-        // Используйте методы API для выполнения оплаты по криптограмме
-        // (charge (для одностадийного платежа) или auth (для двухстадийного))
-        //charge(cardCryptogramPacket: cryptogram, cardHolderName: "")
-        auth(cardCryptogramPacket: cryptogram, cardHolderName: "")
-      
-    }
-    
-    func paymentAuthorizationViewControllerDidFinish(_ controller: PKPaymentAuthorizationViewController) {
-        controller.dismiss(animated: true, completion: nil)
-    }
-}
-```
-
-#### ВАЖНО:
-
-При обработке успешного ответа от Apple Pay, обязательно выполните преобразование объекта PKPayment в криптограмму для передачи в платежное API CloudPayments
-
-```
-let cryptogram = payment.convertToString() 
-```
-После успешного преобразования криптограмму можно использовать для проведения оплаты.
-
-### Другие функции
-
-* Проверка карточного номера на корректность
-
-```
-Card.isCardNumberValid(cardNumber)
-
-```
-
-* Проверка срока действия карты
-
-```
-Card.isExpDateValid(expDate) // expDate в формате MM/yy
-
-```
-
-* Определение типа платежной системы
-
-```
-let cardType: CardType = Card.cardType(from: cardNumberString)
-```
-
-* Определение банка эмитента
-
-```
-CloudpaymentsApi.getBankInfo(cardNumber: cardNumber) { (info, error) in
-    if let error = error {
-        print("error: \(error.message)")
-    } else {
-        if let bankName = info?.bankName {
-            print("BankName: \(bankName)")
-        } else {
-            print("BankName is empty")
-        }
-        
-        if let logoUrl = info?.logoUrl {
-            print("LogoUrl: \(logoUrl)")
-        } else {
-            print("LogoUrl is empty")
-        }
-    }
-}
-```
-
-* Шифрование карточных данных и создание криптограммы для отправки на сервер
-
-```
-let cardCryptogramPacket = Card.makeCardCryptogramPacket(with: cardNumber, expDate: expDate, cvv: cvv, merchantPublicID: Constants.merchantPulicId)
-```
-
-* Шифрование cvv при оплате сохраненной картой и создание криптограммы для отправки на сервер
-
-```
-let cvvCryptogramPacket = Card.makeCardCryptogramPacket(with: cvv)
-```
-
-* Преобразование PKPayment в строку-криптограмму для отправки на сервер
-
-```
-let payment: PKPayment
-let cryptogram = payment.convertToString()
-```
-
-* Отображение 3DS формы и получении результата 3DS аутентификации
-
-```
-let data = ThreeDsData.init(transactionId: transactionId, paReq: paReq, acsUrl: acsUrl)
-let threeDsProcessor = ThreeDsProcessor()
-threeDsProcessor.make3DSPayment(with: data, delegate: self)
-
-public protocol ThreeDsDelegate: class {
-    func willPresentWebView(_ webView: WKWebView)
-    func onAuthotizationCompleted(with md: String, paRes: String)
-    func onAuthorizationFailed(with html: String)
 }
 ```
 
 ### История обновлений:
 
-#### 1.6.3
-* Исправлена передача amount в объекте recurrent
+#### 2.0.0 
 
-#### 1.6.2
-* Исправлена передача invoiceId
-
-#### 1.6.1
-* Исправлены ошибки
-* Обновлена документация
+* Новый дизайн, новые возможности, добавлены новые способы оплаты, добавлена возможность изменять порядок отображения способов оплаты
 
 #### 1.6.0
 * Выполнен переход на новое API (только для стандартной формы)
