@@ -114,17 +114,10 @@ final class PaymentCardViewController: BaseViewController {
         sheet.onDismiss = { [weak self] isSwipe in
             guard let self else { return }
             if isSwipe {
-                if self.configuration.paymentData.singlePaymentMethod {
+                if configuration.singlePaymentMode != nil {
                     self.dismiss(animated: true) { [configuration] in
-                        if let top = UIApplication.topViewController() {
-                            PaymentOptionsViewController.present(
-                                with: configuration,
-                                from: top,
-                                skipLoader: true
-                            )
-                            AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/methods/card-edit", methodChosen: "Сard", cardFieldsCount: 3, eventType: "Close")
-                            AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
-                        }
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/methods/card-edit", methodChosen: "Сard", cardFieldsCount: 3, eventType: "Close")
+                        AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
                     }
                 } else {
                     self.dismiss(animated: true) { [configuration] in
@@ -151,7 +144,7 @@ extension PaymentCardViewController: PaymentResultViewControllerDelegate {
     func paymentResultPrimaryTapped(state: PaymentResultViewController.State) {
         switch state {
         case .declined:
-            if configuration.paymentData.singlePaymentMethod {
+            if configuration.singlePaymentMode != nil {
                 self.dismiss(animated: true)
             } else {
                 guard let parent = self.presentedViewController else { return }

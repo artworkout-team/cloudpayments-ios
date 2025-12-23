@@ -78,7 +78,7 @@ public final class PaymentOptionsViewController: BaseViewController {
     
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if configuration.paymentData.singlePaymentMethod == false {
+        if configuration.singlePaymentMode == nil {
             configuration.paymentUIDelegate.paymentFormWillDisplay()
             configuration.paymentUIDelegate.paymentFormDidDisplay()
         }
@@ -86,14 +86,14 @@ public final class PaymentOptionsViewController: BaseViewController {
     
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        if configuration.paymentData.singlePaymentMethod == false {
+        if configuration.singlePaymentMode == nil {
             configuration.paymentUIDelegate.paymentFormWillHide()
         }
     }
     
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if configuration.paymentData.singlePaymentMethod == false {
+        if configuration.singlePaymentMode == nil {
             configuration.paymentUIDelegate.paymentFormDidHide()
         }
     }
@@ -124,11 +124,34 @@ public final class PaymentOptionsViewController: BaseViewController {
     }
     
     private func presentOptions(methods: [PaymentMethod], paymentMethodSequence: [String]?, intent: PaymentIntentResponse?) {
+        if let singleMode = configuration.singlePaymentMode {
+            guard let method = methods.first(where: { $0.type == singleMode.rawValue }) else {
+                if configuration.showResultScreenForSinglePaymentMode {
+                    showAlert(title: .errorWord, message: .errorConfiguration) {
+                        self.dismiss(animated: true)
+                    }
+                } else {
+                    self.dismiss(animated: true)
+                }
+                return
+            }
+
+            switch singleMode {
+            case .card:
+                launchDirectFlowCard(for: method)
+            case .sbp:
+                launchDirectFlowSbp(for: method)
+            default:
+                launchDirectFlowOtherMethods(for: method)
+            }
+            return
+        }
+
         let sequence: [String]
         if let paymentMethodSequence, !paymentMethodSequence.isEmpty {
             sequence = paymentMethodSequence
         } else {
-            sequence = configuration.paymentMethodSequence.map { $0.rawValue }
+            sequence = configuration.paymentMethodSequence.map(\.rawValue)
         }
 
         var prioritized: [PaymentMethod] = []
@@ -137,56 +160,29 @@ public final class PaymentOptionsViewController: BaseViewController {
                 prioritized.append(method)
             }
         }
-
         for method in methods where !sequence.contains(method.type ?? "") {
             prioritized.append(method)
         }
-        
+
         let targetMethods = prioritized
-        configuration.paymentData.singlePaymentMethod = sequence.count == 1
         
-        if configuration.paymentData.singlePaymentMethod,
-           configuration.showResultScreen,
-           sequence.isEmpty {
-            self.showAlert(title: .errorWord, message: .errorConfiguration) {
-                self.dismiss(animated: true)
+        if targetMethods.count == 1, let single = targetMethods.first {
+            guard let type = PaymentMethodType(rawValue: single.type ?? "") else {
+                showAlert(title: .errorWord, message: .errorConfiguration) {
+                    self.dismiss(animated: true)
+                }
+                return
             }
-            return
-        }
-
-        if targetMethods.count > 1 {
+            switch type {
+            case .card: launchDirectFlowCard(for: single)
+            case .sbp:  launchDirectFlowSbp(for: single)
+            default:    launchDirectFlowOtherMethods(for: single)
+            }
+        } else {
             showOptionsScreen(methods: targetMethods, intent: intent)
-        } else if let single = targetMethods.first {
-            let needOptions: Bool = {
-                switch configuration.emailBehavior {
-                case .required:
-                    return configuration.paymentData.email.isNilOrEmpty
-                case .optional, .hidden:
-                    return false
-                }
-            }()
-
-            if needOptions {
-                showOptionsScreen(methods: targetMethods, intent: intent)
-            } else {
-                if configuration.paymentData.singlePaymentMethod {
-                    if let type = PaymentMethodType(rawValue: single.type ?? "") {
-                        switch type {
-                        case .card:
-                            launchDirectFlowCard(for: single)
-                        case .sbp:
-                            launchDirectFlowSbp(for: single)
-                        default:
-                            launchDirectFlowOtherMethods(for: single)
-                        }
-                    }
-                } else {
-                    showOptionsScreen(methods: targetMethods, intent: intent)
-                }
-            }
         }
     }
-    
+        
     private func showOptionsScreen(methods: [PaymentMethod], intent: PaymentIntentResponse?) {
         let viewModel = BottomSheetViewModel(cornerRadius: 20)
         let saveCardState = configuration.paymentData.intentSaveCardState

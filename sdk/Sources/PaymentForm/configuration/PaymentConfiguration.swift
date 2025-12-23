@@ -11,32 +11,30 @@ public class PaymentConfiguration {
     let paymentData: PaymentData
     let paymentDelegate: PaymentDelegateImpl
     let paymentUIDelegate: PaymentUIDelegateImpl
-    let scanner: PaymentCardScanner?
     let emailBehavior: EmailBehaviorType
     let useDualMessagePayment: Bool
     let disableApplePay: Bool
     let apiUrl: String
     var paymentMethodSequence: [PaymentMethodType]
+    var singlePaymentMode: PaymentMethodType?
     var successRedirectUrl: String?
-    var showResultScreen: Bool
+    var showResultScreenForSinglePaymentMode: Bool
     var failRedirectUrl: String?
-    var saveCardSinglePaymentMode: Bool?
    
-    public init(publicId: String, paymentData: PaymentData, delegate: PaymentDelegate? = nil, uiDelegate: PaymentUIDelegate? = nil, scanner: PaymentCardScanner? = nil,
-    emailBehavior: EmailBehaviorType = .required, paymentMethodSequence: [PaymentMethodType], useDualMessagePayment: Bool = false, disableApplePay: Bool = false, apiUrl: String = CloudpaymentsApi.baseURLString, showResultScreen: Bool = true, successRedirectUrl: String? = nil, failRedirectUrl: String? = nil) {
+    public init(publicId: String, paymentData: PaymentData, delegate: PaymentDelegate? = nil, uiDelegate: PaymentUIDelegate? = nil, emailBehavior: EmailBehaviorType = .required, paymentMethodSequence: [PaymentMethodType], singlePaymentMode: PaymentMethodType? = nil, useDualMessagePayment: Bool = false, disableApplePay: Bool = true, apiUrl: String = CloudpaymentsApi.baseURLString, showResultScreenForSinglePaymentMode: Bool = true, successRedirectUrl: String? = nil, failRedirectUrl: String? = nil) {
         self.publicId = publicId
         self.paymentData = paymentData
         self.paymentDelegate = PaymentDelegateImpl.init(delegate: delegate)
         self.paymentUIDelegate = PaymentUIDelegateImpl.init(delegate: uiDelegate)
-        self.scanner = scanner
         self.emailBehavior = emailBehavior
         self.useDualMessagePayment = useDualMessagePayment
         self.disableApplePay = disableApplePay
         self.apiUrl = apiUrl
-        self.showResultScreen = showResultScreen
+        self.showResultScreenForSinglePaymentMode = showResultScreenForSinglePaymentMode
         self.successRedirectUrl = successRedirectUrl
         self.failRedirectUrl = failRedirectUrl
         self.paymentMethodSequence = paymentMethodSequence
+        self.singlePaymentMode = singlePaymentMode
     }
 }
 

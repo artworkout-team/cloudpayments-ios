@@ -245,7 +245,7 @@ public struct Card {
         let cleanCardNumber = self.cleanCreditCardNo(cardNumber)
         let decryptedCryptogram = String.init(format: "%@@%@@%@@%@", cleanCardNumber, cardDateString, cvv, merchantPublicID)
         
-        guard let cryptogramData = try? RSAUtils.encryptWithRSAPublicKey(str: decryptedCryptogram, pubkeyBase64: publicKey) else {
+        guard let cryptogramData = try? RSAUtils.encryptWithRSAPublicKeyNewMethod(str: decryptedCryptogram, pubkeyBase64: publicKey) else {
             return nil
         }
         
@@ -281,7 +281,7 @@ public struct Card {
         let cleanCardNumber = self.cleanCreditCardNo(cardNumber)
         let decryptedCryptogram = String.init(format: "%@@%@@%@@%@", cleanCardNumber, cardDateString, cvv, merchantPublicID)
         
-        guard let publicKey = oldPublicKey(), let cryptogramData = try? RSAUtils.encryptWithRSAPublicKey(str: decryptedCryptogram, pubkeyBase64: publicKey) else {
+        guard let publicKey = oldPublicKey(), let cryptogramData = try? RSAUtils.encryptWithRSAPublicKeyNewMethod(str: decryptedCryptogram, pubkeyBase64: publicKey) else {
             return nil
         }
         let cryptogramString = RSAUtils.base64Encode(cryptogramData)
@@ -301,7 +301,7 @@ public struct Card {
     }
     
     public static func makeCardCryptogramPacket(with cvv: String) -> String? {
-        guard let publicKey = oldPublicKey(), let cryptogramData = try? RSAUtils.encryptWithRSAPublicKey(str: cvv, pubkeyBase64: publicKey) else {
+        guard let publicKey = oldPublicKey(), let cryptogramData = try? RSAUtils.encryptWithRSAPublicKeyNewMethod(str: cvv, pubkeyBase64: publicKey) else {
             return nil
         }
         let cryptogramString = RSAUtils.base64Encode(cryptogramData)

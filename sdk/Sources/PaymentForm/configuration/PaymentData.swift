@@ -87,7 +87,6 @@ public class PaymentData {
     var isTest: Bool? = nil
     var cachedMethods: [PaymentMethod]? = nil
     var methodsAvailable: [String]? = nil
-    var singlePaymentMethod: Bool = false
     var isAdditionalMethodsExpanded: Bool? = nil
     var isSaveCardSelected: Bool? = nil
     var isReceiptSelected: Bool? = nil

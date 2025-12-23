@@ -74,14 +74,25 @@ extension ProgressSberPayViewController: ProgressPaymentViewDelegate {
 extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
     func showAlert(message: String?, title: String?) {
         showAlert(title: title, message: message) { [weak self] in
-            guard let self, let parent = self.presentingViewController else { return }
-            self.dismiss(animated: false) {
-                PaymentOptionsViewController.present(
-                    with: self.presenter.configuration,
-                    from: parent,
-                    skipLoader: true
-                )
-                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: self.presenter.configuration)
+            guard let self else { return }
+            let configuration = self.presenter.configuration
+            
+            if configuration.singlePaymentMode != nil {
+                self.presentingViewController?.dismiss(animated: false) {
+                    configuration.paymentDelegate.paymentClosed()
+                }
+            } else {
+                guard let parent = self.presentingViewController else { return }
+                self.dismiss(animated: false) {
+                    PaymentOptionsViewController.present(
+                        with: configuration,
+                        from: parent,
+                        skipLoader: true
+                    )
+                    AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(
+                        configuration: configuration
+                    )
+                }
             }
         }
     }
@@ -118,9 +129,8 @@ extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
         let configuration = presenter.configuration
         guard let parent = presentingViewController else { return }
 
-        /// showResultScreen = true, singlePaymentMethod = true
-        if configuration.paymentData.singlePaymentMethod {
-            if configuration.showResultScreen {
+        if configuration.singlePaymentMode != nil {
+            if configuration.showResultScreenForSinglePaymentMode {
                 handleSingleMethodResultScreen(
                     result: result,
                     error: error,
@@ -129,7 +139,6 @@ extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
                     parent: parent
                 )
             } else {
-                /// showResultScreen = false, singlePaymentMethod = true
                 handleSingleMethodNoResultScreen(
                     result: result,
                     error: error,
@@ -138,7 +147,6 @@ extension ProgressSberPayViewController: ProgressSberPayViewControllerProtocol {
                 )
             }
         } else {
-            /// showResultScreen = false, singlePaymentMethod = false
             handleStandartMethodResultScreen(
                 result: result,
                 error: error,

@@ -138,7 +138,6 @@ final class DemoViewController: BaseViewController {
         let paymentData = PaymentData()
             .setAmount(amount)
             .setCurrency(currency)
-            .setApplePayMerchantId(Constants.applePayMerchantID)
             .setCardholderName("CP SDK")
             .setInvoiceId(invoiceId)
             .setDescription(descript)
@@ -154,12 +153,11 @@ final class DemoViewController: BaseViewController {
             paymentData: paymentData,
             delegate: self,
             uiDelegate: self,
-            scanner: nil,
             emailBehavior: .optional,
             paymentMethodSequence: [],
+//            singlePaymentMode: .tpay,
             useDualMessagePayment: footer.demoActionSwitch.isOn,
-            disableApplePay: true,
-            showResultScreen: false
+            showResultScreenForSinglePaymentMode: true
             // successRedirectUrl: "https://ya.ru",
             // failRedirectUrl: "https://ya.ru",
         )

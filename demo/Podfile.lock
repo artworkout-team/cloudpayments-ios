@@ -1,5 +1,5 @@
 PODS:
-  - Cloudpayments (1.6.0):
+  - Cloudpayments (2.0.0):
     - CloudpaymentsNetworking
   - CloudpaymentsNetworking (1.0.2)
 
@@ -14,7 +14,7 @@ EXTERNAL SOURCES:
     :path: "../networking"
 
 SPEC CHECKSUMS:
-  Cloudpayments: b8a5855ee3ec680ebb4543177e694679215dcd30
+  Cloudpayments: 1450ff48f57390f59905b7dd4d05441c038f8990
   CloudpaymentsNetworking: 53573e85a3bbc5947b501cb008b9966324ed335b
 
 PODFILE CHECKSUM: e6bfdced09144bd242c756af72d2f980cecc3fff

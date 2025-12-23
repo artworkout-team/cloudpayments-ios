@@ -11,7 +11,7 @@ import Foundation
 import CommonCrypto
 
 class RSAUtils {
-    private static let PADDING_FOR_DECRYPT = SecPadding()
+//    private static let PADDING_FOR_DECRYPT = SecPadding()
 
     @available(iOS, introduced: 1.2.0)
     public class RSAUtilsError: NSError, @unchecked Sendable {
@@ -52,7 +52,127 @@ class RSAUtils {
         }
         return ""
     }
+    
+    @available(iOS 10.0, *)
+    private static func encryptSingleChunkPKCS1(_ chunk: Data, key: SecKey) -> Data? {
+        let algorithm = SecKeyAlgorithm.rsaEncryptionPKCS1
 
+        guard SecKeyIsAlgorithmSupported(key, .encrypt, algorithm) else {
+            return nil
+        }
+
+        var error: Unmanaged<CFError>?
+        let encrypted = SecKeyCreateEncryptedData(
+            key,
+            algorithm,
+            chunk as CFData,
+            &error
+        )
+        
+        if let error = error {
+            print("RSA Encrypt error: \(error.takeRetainedValue())")
+            return nil
+        }
+        
+        return encrypted as Data?
+    }
+    
+    @available(iOS 10.0, *)
+    public static func encryptWithRSAKeyPKCS1(_ data: Data, rsaKeyRef: SecKey) -> Data? {
+        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
+        let maxChunkSize = blockSize - 11  // PKCS1 padding
+        
+        var encryptedChunks = [Data]()
+        var index = 0
+        
+        while index < data.count {
+            let chunkSize = min(maxChunkSize, data.count - index)
+            let chunk = data.subdata(in: index ..< (index + chunkSize))
+            
+            guard let encryptedChunk = encryptSingleChunkPKCS1(chunk, key: rsaKeyRef) else {
+                return nil
+            }
+            
+            encryptedChunks.append(encryptedChunk)
+            index += chunkSize
+        }
+        
+        return encryptedChunks.reduce(Data(), +)
+    }
+    
+    @available(iOS 10.0, *)
+    private static func decryptSingleChunkPKCS1(_ chunk: Data, key: SecKey) -> Data? {
+        let algorithm = SecKeyAlgorithm.rsaEncryptionPKCS1
+
+        guard SecKeyIsAlgorithmSupported(key, .decrypt, algorithm) else {
+            return nil
+        }
+
+        var error: Unmanaged<CFError>?
+        let decrypted = SecKeyCreateDecryptedData(
+            key,
+            algorithm,
+            chunk as CFData,
+            &error
+        )
+
+        if let error = error {
+            print("RSA decrypt error: \(error.takeRetainedValue())")
+            return nil
+        }
+
+        return decrypted as Data?
+    }
+    
+    @available(iOS 10.0, *)
+    public static func decryptWithRSAKeyPKCS1(_ encryptedData: Data, rsaKeyRef: SecKey) -> Data? {
+        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
+        let totalLength = encryptedData.count
+        
+        var decryptedChunks = [Data]()
+        var index = 0
+        
+        while index < totalLength {
+            let chunkEnd = index + blockSize
+            let chunk = encryptedData.subdata(in: index ..< chunkEnd)
+            
+            guard let decryptedChunk = decryptSingleChunkPKCS1(chunk, key: rsaKeyRef) else {
+                return nil
+            }
+            
+            decryptedChunks.append(decryptedChunk)
+            index += blockSize
+        }
+        
+        return decryptedChunks.reduce(Data(), +)
+    }
+    
+    @available(iOS, introduced: 1.2.0)
+    public static func encryptWithRSAKey(data: Data, tagName: String) -> Data? {
+        guard let key = getRSAKeyFromKeychain(tagName) else { return nil }
+        return encryptWithRSAKeyPKCS1(data, rsaKeyRef: key)
+    }
+    
+    @available(iOS, introduced: 1.2.0)
+    public static func encryptWithRSAPublicKeyNewMethod(str: String, pubkeyBase64: String) throws -> Data? {
+        let tagName = "PUBLIC-" + String(pubkeyBase64.hashValue)
+
+        var key = getRSAKeyFromKeychain(tagName)
+        if key == nil {
+            key = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
+        }
+        guard let key = key else { return nil }
+
+        let data = str.data(using: .utf8)!
+        return encryptWithRSAKeyPKCS1(data, rsaKeyRef: key)
+    }
+    
+    @available(iOS, introduced: 1.2.0)
+    public static func decryptWithRSAKey(encryptedData: Data, tagName: String) -> Data? {
+        guard let key = getRSAKeyFromKeychain(tagName) else { return nil }
+        return decryptWithRSAKeyPKCS1(encryptedData, rsaKeyRef: key)
+    }
+    
     /**
      * Deletes an existing RSA key specified by a tag from keychain.
      *
@@ -350,46 +470,46 @@ class RSAUtils {
      * - Returns: the data in encrypted form
      */
     
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAKey(_ data: Data, rsaKeyRef: SecKey, padding: SecPadding) -> Data? {
-        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
-        var maxChunkSize: Int
-        switch padding {
-        case []:
-            maxChunkSize = blockSize
-        case .OAEP:
-            maxChunkSize = blockSize - 42
-        default:
-            maxChunkSize = blockSize - 11
-        }
-        
-        var decryptedDataAsArray = [UInt8](repeating: 0, count: data.count)
-        (data as NSData).getBytes(&decryptedDataAsArray, length: data.count)
-        
-        var encryptedDataBytes = [UInt8](repeating: 0, count: 0)
-        var idx = 0
-        while idx < decryptedDataAsArray.count {
-            
-            let idxEnd = min(idx + maxChunkSize, decryptedDataAsArray.count)
-            let chunkData = [UInt8](decryptedDataAsArray[idx..<idxEnd])
-            
-            var encryptedDataBuffer = [UInt8](repeating: 0, count: blockSize)
-            var encryptedDataLength = blockSize
-            
-            let status = SecKeyEncrypt(rsaKeyRef, padding, chunkData, chunkData.count, &encryptedDataBuffer, &encryptedDataLength)
-            
-            guard status == noErr else {
-                return nil
-            }
-            
-            encryptedDataBytes += encryptedDataBuffer
-            
-            idx += maxChunkSize
-        }
-        
-        let encryptedData = Data(bytes: encryptedDataBytes, count: encryptedDataBytes.count)
-        return encryptedData
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAKey(_ data: Data, rsaKeyRef: SecKey, padding: SecPadding) -> Data? {
+//        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
+//        var maxChunkSize: Int
+//        switch padding {
+//        case []:
+//            maxChunkSize = blockSize
+//        case .OAEP:
+//            maxChunkSize = blockSize - 42
+//        default:
+//            maxChunkSize = blockSize - 11
+//        }
+//        
+//        var decryptedDataAsArray = [UInt8](repeating: 0, count: data.count)
+//        (data as NSData).getBytes(&decryptedDataAsArray, length: data.count)
+//        
+//        var encryptedDataBytes = [UInt8](repeating: 0, count: 0)
+//        var idx = 0
+//        while idx < decryptedDataAsArray.count {
+//            
+//            let idxEnd = min(idx + maxChunkSize, decryptedDataAsArray.count)
+//            let chunkData = [UInt8](decryptedDataAsArray[idx..<idxEnd])
+//            
+//            var encryptedDataBuffer = [UInt8](repeating: 0, count: blockSize)
+//            var encryptedDataLength = blockSize
+//            
+//            let status = SecKeyEncrypt(rsaKeyRef, padding, chunkData, chunkData.count, &encryptedDataBuffer, &encryptedDataLength)
+//            
+//            guard status == noErr else {
+//                return nil
+//            }
+//            
+//            encryptedDataBytes += encryptedDataBuffer
+//            
+//            idx += maxChunkSize
+//        }
+//        
+//        let encryptedData = Data(bytes: encryptedDataBytes, count: encryptedDataBytes.count)
+//        return encryptedData
+//    }
 
     /**
      * Decrypts data with a RSA key.
@@ -400,41 +520,41 @@ class RSAUtils {
      *
      * - Returns: the decrypted data
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func decryptWithRSAKey(_ encryptedData: Data, rsaKeyRef: SecKey, padding: SecPadding) -> Data? {
-        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
-        let dataSize = encryptedData.count / MemoryLayout<UInt8>.size
-
-        var encryptedDataAsArray = [UInt8](repeating: 0, count: dataSize)
-        (encryptedData as NSData).getBytes(&encryptedDataAsArray, length: dataSize)
-
-        var decryptedData = [UInt8](repeating: 0, count: 0)
-        var idx = 0
-        while (idx < encryptedDataAsArray.count ) {
-            var idxEnd = idx + blockSize
-            if ( idxEnd > encryptedDataAsArray.count ) {
-                idxEnd = encryptedDataAsArray.count
-            }
-            var chunkData = [UInt8](repeating: 0, count: blockSize)
-            for i in idx..<idxEnd {
-                chunkData[i-idx] = encryptedDataAsArray[i]
-            }
-
-            var decryptedDataBuffer = [UInt8](repeating: 0, count: blockSize)
-            var decryptedDataLength = blockSize
-
-            let status = SecKeyDecrypt(rsaKeyRef, padding, chunkData, idxEnd-idx, &decryptedDataBuffer, &decryptedDataLength)
-            if ( status != noErr ) {
-                return nil
-            }
-            let finalData = removePadding(decryptedDataBuffer)
-            decryptedData += finalData
-
-            idx += blockSize
-        }
-
-        return Data(bytes: decryptedData, count: decryptedData.count)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func decryptWithRSAKey(_ encryptedData: Data, rsaKeyRef: SecKey, padding: SecPadding) -> Data? {
+//        let blockSize = SecKeyGetBlockSize(rsaKeyRef)
+//        let dataSize = encryptedData.count / MemoryLayout<UInt8>.size
+//
+//        var encryptedDataAsArray = [UInt8](repeating: 0, count: dataSize)
+//        (encryptedData as NSData).getBytes(&encryptedDataAsArray, length: dataSize)
+//
+//        var decryptedData = [UInt8](repeating: 0, count: 0)
+//        var idx = 0
+//        while (idx < encryptedDataAsArray.count ) {
+//            var idxEnd = idx + blockSize
+//            if ( idxEnd > encryptedDataAsArray.count ) {
+//                idxEnd = encryptedDataAsArray.count
+//            }
+//            var chunkData = [UInt8](repeating: 0, count: blockSize)
+//            for i in idx..<idxEnd {
+//                chunkData[i-idx] = encryptedDataAsArray[i]
+//            }
+//
+//            var decryptedDataBuffer = [UInt8](repeating: 0, count: blockSize)
+//            var decryptedDataLength = blockSize
+//
+//            let status = SecKeyDecrypt(rsaKeyRef, padding, chunkData, idxEnd-idx, &decryptedDataBuffer, &decryptedDataLength)
+//            if ( status != noErr ) {
+//                return nil
+//            }
+//            let finalData = removePadding(decryptedDataBuffer)
+//            decryptedData += finalData
+//
+//            idx += blockSize
+//        }
+//
+//        return Data(bytes: decryptedData, count: decryptedData.count)
+//    }
 
     @available(iOS, introduced: 1.2.0)
     private static func removePadding(_ data: [UInt8]) -> [UInt8] {
@@ -471,15 +591,15 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAKey(data: Data, tagName: String) -> Data? {
-        let keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAKey(data: Data, tagName: String) -> Data? {
+//        let keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 
     /**
      * Encrypts a string using a RSA key from keychain specified by `tagName`.
@@ -491,15 +611,15 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAKey(str: String, tagName: String) -> Data? {
-        let keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAKey(str: String, tagName: String) -> Data? {
+//        let keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 
     /**
      * Decrypts an encrypted data using a RSA key from keychain specified by `tagName`.
@@ -511,15 +631,15 @@ class RSAUtils {
      *
      * - Returns: the decrypted data
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func decryptWithRSAKey(encryptedData: Data, tagName: String) -> Data? {
-        let keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: PADDING_FOR_DECRYPT)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func decryptWithRSAKey(encryptedData: Data, tagName: String) -> Data? {
+//        let keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: PADDING_FOR_DECRYPT)
+//    }
 
     /*----------------------------------------------------------------------*/
 
@@ -535,19 +655,19 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAPublicKey(data: Data, pubkeyBase64: String) throws -> Data? {
-        let tagName = "PUBIC-" + String(pubkeyBase64.hashValue)
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAPublicKey(data: Data, pubkeyBase64: String) throws -> Data? {
+//        let tagName = "PUBIC-" + String(pubkeyBase64.hashValue)
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 
     /**
      * Encrypts a string using RSA public key.
@@ -561,19 +681,19 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAPublicKey(str: String, pubkeyBase64: String) throws -> Data? {
-        let tagName = "PUBIC-" + String(pubkeyBase64.hashValue)
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.PKCS1)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAPublicKey(str: String, pubkeyBase64: String) throws -> Data? {
+//        let tagName = "PUBIC-" + String(pubkeyBase64.hashValue)
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.PKCS1)
+//    }
 
     /**
      * Encrypts data using RSA public key.
@@ -588,18 +708,18 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAPublicKey(data: Data, pubkeyBase64: String, tagName: String) throws -> Data? {
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAPublicKey(data: Data, pubkeyBase64: String, tagName: String) throws -> Data? {
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(data, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 
     /**
      * Encrypts a string using RSA public key.
@@ -614,18 +734,18 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func encryptWithRSAPublicKey(str: String, pubkeyBase64: String, tagName: String) throws -> Data? {
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func encryptWithRSAPublicKey(str: String, pubkeyBase64: String, tagName: String) throws -> Data? {
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPublicKey(pubkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return encryptWithRSAKey(str.data(using: .utf8)!, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 
     /*----------------------------------------------------------------------*/
 
@@ -641,19 +761,19 @@ class RSAUtils {
      *
      * - Returns: the decrypted data
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func decryptWithRSAPrivateKey(encryptedData: Data, privkeyBase64: String) throws -> Data? {
-        let tagName = "PRIVATE-" + String(privkeyBase64.hashValue)
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPrivateKey(privkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: PADDING_FOR_DECRYPT)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func decryptWithRSAPrivateKey(encryptedData: Data, privkeyBase64: String) throws -> Data? {
+//        let tagName = "PRIVATE-" + String(privkeyBase64.hashValue)
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPrivateKey(privkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: PADDING_FOR_DECRYPT)
+//    }
 
     /**
      * Decrypts an encrypted data using a RSA private key.
@@ -668,16 +788,16 @@ class RSAUtils {
      *
      * - Returns: the data in encrypted form
      */
-    @available(iOS, introduced: 1.2.0)
-    public static func decryptWithRSAPrivateKey(encryptedData: Data, privkeyBase64: String, tagName: String) throws -> Data? {
-        var keyRef = getRSAKeyFromKeychain(tagName)
-        if ( keyRef == nil ) {
-            keyRef = try addRSAPrivateKey(privkeyBase64, tagName: tagName)
-        }
-        if ( keyRef == nil ) {
-            return nil
-        }
-
-        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
-    }
+//    @available(iOS, introduced: 1.2.0)
+//    public static func decryptWithRSAPrivateKey(encryptedData: Data, privkeyBase64: String, tagName: String) throws -> Data? {
+//        var keyRef = getRSAKeyFromKeychain(tagName)
+//        if ( keyRef == nil ) {
+//            keyRef = try addRSAPrivateKey(privkeyBase64, tagName: tagName)
+//        }
+//        if ( keyRef == nil ) {
+//            return nil
+//        }
+//
+//        return decryptWithRSAKey(encryptedData, rsaKeyRef: keyRef!, padding: SecPadding.OAEP)
+//    }
 }

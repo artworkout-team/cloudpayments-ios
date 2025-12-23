@@ -2,7 +2,7 @@
 //  PaymentForm.swift
 //  sdk
 //
-//  Created by Sergey Iskhakov on 16.09.2020.
+//  Created by Cloudpayments on 16.09.2020.
 //  Copyright © 2020 Cloudpayments. All rights reserved.
 //
 
@@ -129,10 +129,9 @@ public class PaymentForm: BaseViewController {
             guard let paReq = transactionResponse.paReq else { return }
             guard let transactionId = transactionResponse.transaction?.transactionId else { return }
             guard let acsUrl = transactionResponse.acsUrl else { return }
-            guard let intentId = configuration.paymentData.intentId else { return }
             
             let threeDsData = ThreeDsData(transactionId: String(transactionId), paReq: paReq, acsUrl: acsUrl, threeDSCallbackId: threeDsCallbackId)
-            threeDsProcessor.make3DSPayment(with: threeDsData, delegate: self, intentId: intentId)
+            threeDsProcessor.make3DSPayment(with: threeDsData, delegate: self)
             self.threeDsCompletionIntentApi = completion
             self.paymentResponse = transactionResponse
         } else {
@@ -169,15 +168,23 @@ public class PaymentForm: BaseViewController {
 }
 // MARK: - Extensions
 extension PaymentForm: ThreeDsDelegate {
-    public func onAuthorizationCompleted(with transactionStatus: Bool?) {
-        self.closeThreeDs { [weak self] in
-            guard let self = self, let transactionStatus = transactionStatus else {
-                return
-            }
-            self.threeDsCompletionIntentApi?(transactionStatus, false, paymentResponse, nil)
-        }
+    public func onAuthorizationCompleted(with md: String, paRes: String) {
+//        self.closeThreeDs { [weak self] in
+//            guard let self = self else {
+//                return
+//            }
+//            self.post3ds(transactionId: md, paRes: paRes) { [weak self] response in
+//                guard let self = self else {
+//                    return
+//                }
+                
+//                self.transaction?.reasonCode = Int(response.reasonCode!) ?? 5204
+                
+//                self.threeDsCompletion?(response.success, false, self.transaction, response.reasonCode!)
+//            }
+//        }
     }
-    
+
     public func onAuthorizationFailed(with code: String) {
         self.closeThreeDs { [weak self] in
             guard let self = self else { return }

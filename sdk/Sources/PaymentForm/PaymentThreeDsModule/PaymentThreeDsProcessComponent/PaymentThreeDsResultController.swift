@@ -138,9 +138,8 @@ private extension PaymentThreeDsResultController {
         let configuration = self.configuration
         guard let parent = presentingViewController else { return }
         
-        /// showResultScreen = true, singlePaymentMethod = true
-        if configuration.paymentData.singlePaymentMethod {
-            if configuration.showResultScreen {
+        if configuration.singlePaymentMode != nil {
+            if configuration.showResultScreenForSinglePaymentMode {
                 handleSingleMethodResultScreen(
                     result: result,
                     error: error,
@@ -149,7 +148,6 @@ private extension PaymentThreeDsResultController {
                     parent: parent
                 )
             } else {
-                /// showResultScreen = false, singlePaymentMethod = true
                 handleSingleMethodNoResultScreen(
                     result: result,
                     error: error,
@@ -158,7 +156,6 @@ private extension PaymentThreeDsResultController {
                 )
             }
         } else {
-            /// showResultScreen = false, singlePaymentMethod = false
             handleStandartMethodResultScreen(
                 result: result,
                 error: error,

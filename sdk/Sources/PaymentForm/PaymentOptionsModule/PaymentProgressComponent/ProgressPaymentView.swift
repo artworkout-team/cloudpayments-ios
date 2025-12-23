@@ -22,8 +22,8 @@ final class ProgressPaymentView: UIView {
     // MARK: - Subviews
 
     private lazy var contentView = UIView(backgroundColor: .whiteColor, cornerRadius: Constants.Radius.medium)
-
     private lazy var alertImageView = UIImageView(image: .iconProgress, contentMode: .scaleAspectFit)
+    private let useDimming: Bool
 
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
@@ -86,13 +86,13 @@ final class ProgressPaymentView: UIView {
     }()
 
     private lazy var button = UIButton(.colorBlue, 8, 1, .paymentMethod, .colorBlue)
-
     private lazy var logoImageView = CloudPaymentsLogoView()
 
     // MARK: - Init
 
-    init(method: PaymentMethodType) {
+    init(method: PaymentMethodType, useDimming: Bool = false) {
         self.method = method
+        self.useDimming = useDimming
         super.init(frame: .zero)
         setupView()
     }
@@ -104,7 +104,7 @@ final class ProgressPaymentView: UIView {
     // MARK: - Setup
 
     private func setupView() {
-        backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        backgroundColor = useDimming ? UIColor.black.withAlphaComponent(0.5) : .clear
 
         let textView = UIView()
         let buttonView = UIView()

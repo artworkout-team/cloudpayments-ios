@@ -20,7 +20,7 @@ final class PaymentThreeDsProcessController: BaseViewController {
     private let threeDsCloseButton = CPButton()
 
     // MARK: 3DS engine & networking
-    private lazy var threeDsProcessor = ThreeDsProcessor()
+    private lazy var threeDsProcessor = IntentThreeDsProcessor()
     private var threeDsCallbackId: String = ""
     private var threeDsCompletionIntentApi: PaymentCallbackIntentApi?
     private var paymentResponse: PaymentIntentResponse?
@@ -160,7 +160,7 @@ extension PaymentThreeDsProcessController {
                 threeDSCallbackId: callbackId
             )
 
-            threeDsProcessor.make3DSPayment(with: threeDsData, delegate: self, intentId: intentId)
+            threeDsProcessor.make3DSPaymentByIntent(with: threeDsData, delegate: self, with: intentId)
             self.threeDsCompletionIntentApi = completion
             self.paymentResponse = transactionResponse
         } else {
@@ -171,7 +171,7 @@ extension PaymentThreeDsProcessController {
 
 // MARK: - ThreeDsDelegate
 
-extension PaymentThreeDsProcessController: ThreeDsDelegate {
+extension PaymentThreeDsProcessController: IntentThreeDsDelegate {
     public func willPresentWebView(_ webView: WKWebView) {
         threeDsContainerView.addSubview(webView)
         webView.translatesAutoresizingMaskIntoConstraints = false

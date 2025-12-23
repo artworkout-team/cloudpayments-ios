@@ -97,10 +97,13 @@ final class ProgressSbpViewController: BaseViewController {
             progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
-        if useDimming {
-            self.view.backgroundColor = .clear
-        }
         AnalyticsService.shared.sendScreenOpenedEvent(configuration: presenter.configuration, screenName: "Waiting", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+    }
+    
+    private func hideWaitScreen() {
+        view.subviews
+            .compactMap { $0 as? ProgressPaymentView }
+            .forEach { $0.removeFromSuperview() }
     }
     
     // MARK: - Private methods
@@ -159,7 +162,7 @@ final class ProgressSbpViewController: BaseViewController {
                 presentationView(false) {
                     self.dismiss(animated: false) {
                         configuration.paymentDelegate.paymentClosed()
-                        if !configuration.paymentData.singlePaymentMethod {
+                        if configuration.singlePaymentMode == nil {
                             PaymentOptionsViewController.present(
                                 with: configuration,
                                 from: parent,
@@ -189,14 +192,12 @@ final class ProgressSbpViewController: BaseViewController {
         
         UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut) {
             self.closedConstraint.constant = isPresent ? -self.heightPresentView : 0
-            
             if self.useDimming {
                 let alpha = isPresent ? 0.5 : 0
                 self.view.backgroundColor = UIColor.black.withAlphaComponent(alpha)
             } else {
                 self.view.backgroundColor = .clear
             }
-            
             self.view.layoutIfNeeded()
         } completion: { _ in
             completion()
@@ -282,31 +283,29 @@ extension ProgressSbpViewController: ProgressSbpViewControllerProtocol {
         error: String?,
         transaction: PaymentTransactionResponse?
     ) {
+        hideWaitScreen()
         let configuration = presenter.configuration
         guard let parent = presentingViewController else { return }
         
-        /// showResultScreen = true, singlePaymentMethod = true
-        if configuration.paymentData.singlePaymentMethod {
-            if configuration.showResultScreen {
+        if configuration.singlePaymentMode != nil {
+            if configuration.showResultScreenForSinglePaymentMode {
                 handleSingleMethodResultScreen(result: result,
                                                error: error,
                                                transaction: transaction,
                                                configuration: configuration,
                                                parent: parent)
             } else {
-                /// showResultScreen = false, singlePaymentMethod = true
                 handleSingleMethodNoResultScreen(result: result,
                                                  error: error,
                                                  transaction: transaction,
                                                  configuration: configuration)
             }
         } else {
-            /// showResultScreen = false, singlePaymentMethod = false
             handleStandartMethodResultScreen(result: result,
-                                            error: error,
-                                            transaction: transaction,
-                                            configuration: configuration,
-                                            parent: parent)
+                                             error: error,
+                                             transaction: transaction,
+                                             configuration: configuration,
+                                             parent: parent)
         }
     }
     
@@ -326,23 +325,27 @@ private extension ProgressSbpViewController {
     ) {
         presentationView(false) {
             self.dismiss(animated: false) {
-                switch result {
-                case .success:
-                    let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
-                    PaymentResultViewController.present(from: parent, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
-                        configuration.paymentDelegate.paymentFinished(transaction)
+                self.dismissOptionsIfNeeded(from: parent) { presenterVC in
+                    switch result {
+                    case .success:
+                        let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                        PaymentResultViewController.present(from: presenterVC, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                            configuration.paymentDelegate.paymentFinished(transaction)
+                            configuration.paymentDelegate.paymentClosed()
+                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                        }
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+                    case .error:
+                        PaymentResultViewController.present(from: presenterVC, state: .declined(message: error)) {
+                            configuration.paymentDelegate.paymentFailed(error)
+                            PaymentOptionsViewController.present(with: configuration, from: presenterVC, skipLoader: true)
+                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                            AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                        }
+                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+                    case .close:
                         configuration.paymentDelegate.paymentClosed()
-                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
                     }
-                    AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
-                case .error:
-                    PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
-                        configuration.paymentDelegate.paymentFailed(error)
-                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
-                    }
-                    AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
-                case .close:
-                    configuration.paymentDelegate.paymentClosed()
                 }
             }
         }
@@ -355,7 +358,7 @@ private extension ProgressSbpViewController {
         configuration: PaymentConfiguration
     ) {
         presentationView(false) {
-            self.dismiss(animated: true) {
+            self.presentingViewController?.dismiss(animated: true) {
                 switch result {
                 case .success:
                     configuration.paymentDelegate.paymentFinished(transaction)
@@ -376,31 +379,32 @@ private extension ProgressSbpViewController {
         parent: UIViewController
     ) {
         presentationView(false) {
-            self.dismissSafariIfNeeded { 
+            self.dismissSafariIfNeeded {
                 self.dismiss(animated: false) {
-                    switch result {
-                    case .success:
-                        let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
-                        PaymentResultViewController.present(from: parent, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
-                            configuration.paymentDelegate.paymentFinished(transaction)
+                    self.dismissOptionsIfNeeded(from: parent) { presenterVC in
+                        switch result {
+                        case .success:
+                            let amountText = "\(configuration.paymentData.amount) \(Currency.getCurrencySign(code: configuration.paymentData.currency))"
+                            PaymentResultViewController.present(from: presenterVC, state: .completed(amountText: amountText, transaction: transaction), orderAlreadyBeenPaid: error) {
+                                configuration.paymentDelegate.paymentFinished(transaction)
+                                configuration.paymentDelegate.paymentClosed()
+                                AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
+                            }
+                            AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
+                        case .error:
+                            PaymentResultViewController.present(from: presenterVC, state: .declined(message: error)) {
+                                configuration.paymentDelegate.paymentFailed(error)
+                                PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
+                                AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                                AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
+                            }
+                            AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
+                        case .close:
                             configuration.paymentDelegate.paymentClosed()
-                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ReturnToShop", elementType: "Button", actionType: "Click", screenName: "/success")
-                        }
-                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/success", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open")
-                        
-                    case .error:
-                        PaymentResultViewController.present(from: parent, state: .declined(message: error)) {
-                            configuration.paymentDelegate.paymentFailed(error)
-                            PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
-                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Try again", elementType: "Button", actionType: "Click", screenName: "/fail")
+                            PaymentOptionsViewController.present(with: configuration, from: presenterVC, skipLoader: true)
+                            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ChooseOtherMethod", elementType: "Button", actionType: "Click", screenName: "/methods")
                             AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
                         }
-                        AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/fail", methodChosen: "Sbp", cardFieldsCount: 0, eventType: "Open", errorContext: transaction?.code)
-                    case .close:
-                        configuration.paymentDelegate.paymentClosed()
-                        PaymentOptionsViewController.present(with: configuration, from: parent, skipLoader: true)
-                        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ChooseOtherMethod", elementType: "Button", actionType: "Click", screenName: "/methods")
-                        AnalyticsService.shared.sendPaymentMethodsScreenOpenedAgain(configuration: configuration)
                     }
                 }
             }
@@ -420,6 +424,18 @@ extension ProgressSbpViewController: SFSafariViewControllerDelegate {
             safari.dismiss(animated: false, completion: completion)
         } else {
             completion()
+        }
+    }
+    
+    private func dismissOptionsIfNeeded(from parent: UIViewController, completion: @escaping (UIViewController) -> Void) {
+        let presenterVC = parent.navigationController ?? parent
+        
+        if let options = presenterVC.presentedViewController as? PaymentOptionsViewController {
+            options.dismiss(animated: false) {
+                completion(presenterVC)
+            }
+        } else {
+            completion(presenterVC)
         }
     }
 }
