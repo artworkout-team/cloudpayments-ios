@@ -64,7 +64,7 @@ public class PaymentData {
     private(set) var description: String?
     private(set) var accountId: String?
     private(set) var invoiceId: String?
-    private(set) var receipt: Receipt?
+    private(set) var receipt: [String: Any]?
     private(set) var recurrent: Recurrent?
     private(set) var jsonData: String?
   
@@ -154,7 +154,7 @@ public class PaymentData {
         return self
     }
     
-    public func setReceipt(_ receipt: Receipt?) -> PaymentData {
+    public func setReceipt(_ receipt: [String: Any]?) -> PaymentData {
         self.receipt = receipt
         return self
     }

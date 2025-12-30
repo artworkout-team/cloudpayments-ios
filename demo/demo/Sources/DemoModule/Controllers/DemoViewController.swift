@@ -92,29 +92,28 @@ final class DemoViewController: BaseViewController {
               let jsonData = getText(.jsonData)
         else { return }
         
-        let item = Receipt.Item(
-            label: descript,
-            price: 1.95,
-            quantity: 1,
-            amount: 1.95,
-            method: 0,
-            object: 0
-        )
-        
-        let receipt = Receipt(
-            items: [item],
-            taxationSystem: 0,
-            email: email,
-            phone: payerPhone,
-            isBso: false,
-            amounts: Receipt.Amounts(
-                electronic: 1.95,
-                advancePayment: 0.0,
-                credit: 0.0,
-                provision: 0.0
-            )
-        )
-        
+        let receipt: [String: Any] = [
+            "Items": [
+                [
+                    "label": "Товар",
+                    "price": 1.95,
+                    "quantity": 1,
+                    "amount": 1.95,
+                    "vat": 0,
+                    "method": 4,
+                    "object": 1
+                ]
+            ],
+            "taxationSystem": 0,
+            "email": "test@test.ru",
+            "amounts": [
+                "electronic": 1.95,
+                "advancePayment": 0,
+                "credit": 0,
+                "provision": 0
+            ]
+        ]
+                
         let recurrent = Recurrent(
             interval: "Week",
             period: 1,
@@ -145,8 +144,8 @@ final class DemoViewController: BaseViewController {
             .setPayer(payer)
             .setEmail(email)
             .setJsonData(jsonData)
-//            .setReceipt(receipt)
-//            .setRecurrent(recurrent)
+            .setReceipt(receipt)
+            .setRecurrent(recurrent)
         
         let configuration = PaymentConfiguration(
             publicId: publicId,

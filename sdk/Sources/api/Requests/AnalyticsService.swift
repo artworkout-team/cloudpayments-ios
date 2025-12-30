@@ -67,7 +67,7 @@ final class AnalyticsService {
         let forceSaveCard = configuration.paymentData.intentSaveCardState == .force
         let sendToEmail = !(configuration.paymentData.email.isNilOrEmpty)
         let forceSendToEmail = configuration.emailBehavior == .required
-        let isRecurring = intent.recurrent != nil
+        let isRecurring = configuration.paymentData.recurrent != nil
         let isStatic = false
         
         let userProperties = AnalyticsUserPropertiesWrapper(

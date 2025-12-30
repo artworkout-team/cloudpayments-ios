@@ -34,28 +34,29 @@ pod 'CloudpaymentsNetworking', :git =>  "https://gitpub.cloudpayments.ru/integra
 1. Cоздайте объект PaymentDataPayer и проинициализируйте его, затем создайте объект PaymentData передайте в него объект PaymentDataPayer, сумму платежа, валюту и дополнительные данные.
 
 ```
-//содержимое позиций чека
-let item = Receipt.Item(
-            label: descript,
-            price: 300.0,
-            quantity: 3.0,
-            amount: 900.0,
-            vat: 20,
-            method: 0,
-            object: 0)
-            
-//создание объекта чека
-let receipt = Receipt(
-            items: [item],
-            taxationSystem: 0,
-            email: email,
-            phone: payerPhone,
-            isBso: false,
-            amounts: Receipt.Amounts(
-                electronic: 900.0,
-                advancePayment: 0.0,
-                credit: 0.0,
-                provision: 0.0))
+
+//создание объекта чека                
+let receipt: [String: Any] = [
+    "Items": [
+        [
+           "label": "Товар",
+            "price": 1.95,
+            "quantity": 1,
+            "amount": 1.95,
+            "vat": 0,
+            "method": 4,
+            "object": 1
+        ]
+    ],
+    "taxationSystem": 0,
+    "email": "test@test.ru",
+    "amounts": [
+        "electronic": 1.95,
+        "advancePayment": 0,
+        "credit": 0,
+        "provision": 0
+    ]
+]
                 
 //создание объекта подписки
 let recurrent = Recurrent(
@@ -84,6 +85,8 @@ let paymentData = PaymentData()
 ```
 
 1.1. За более подробной информацией по формированию чека, можно обратиться в [документацию CloudKassir](https://developers.cloudkassir.ru/)
+
+**Внимание из-за частых изменений в формате чека, он передается как [String: Any]**
 
 2. Создайте объект PaymentConfiguration, передайте в него объект PaymentData и ваш **Public_id** из [личного кабинета CloudPayments](https://merchant.cloudpayments.ru/). Реализуйте протокол PaymentDelegate, чтобы узнать о завершении платежа
 
@@ -217,6 +220,10 @@ extension CheckoutViewController: ThreeDsDelegate {
 7. Выполните запрос post3ds для завершения оплаты (см. [документацию по API](https://developers.cloudpayments.ru/#obrabotka-3-d-secure)).
 
 ### История обновлений:
+
+#### 2.1.1 
+
+* Изменён формат передачи чека на [String: Any]
 
 #### 2.1.0 
 

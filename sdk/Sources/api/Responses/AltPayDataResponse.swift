@@ -93,7 +93,6 @@ public struct PaymentIntentResponse: Codable {
     let retryPayment: Bool?
     let autoClose: Bool?
     let cryptogramMode: Bool?
-    let recurrent: Recurrent?
 }
 
 public struct SberPayResponse: Codable {

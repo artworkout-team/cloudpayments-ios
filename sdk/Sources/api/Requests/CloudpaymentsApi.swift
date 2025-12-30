@@ -183,7 +183,7 @@ public class CloudpaymentsApi {
         let paymentUrl = "cloudpayments://sdk.cp.ru"
         let payer = configuration.paymentData.payer
         let recurrent = configuration.paymentData.recurrent?.toDictionary()
-        let receipt = configuration.paymentData.receipt?.toDictionary()
+        let receipt = configuration.paymentData.receipt
         let successRedirectUrl = configuration.successRedirectUrl
         let failRedirectUrl = configuration.failRedirectUrl
         let invoiceId = configuration.paymentData.invoiceId
