@@ -62,7 +62,7 @@ let receipt: [String: Any] = [
 let recurrent = Recurrent(
             interval: "Month",
             period: 1,
-            customerReceipt: receipt, 
+            receipt: receipt, 
             amount: 99.99)
             
 // Доп. поле, куда передается информация о плательщике. Используйте следующие параметры: FirstName, LastName, MiddleName, Birth, Street, Address, City, Country, Phone, Postcode
@@ -220,6 +220,10 @@ extension CheckoutViewController: ThreeDsDelegate {
 7. Выполните запрос post3ds для завершения оплаты (см. [документацию по API](https://developers.cloudpayments.ru/#obrabotka-3-d-secure)).
 
 ### История обновлений:
+
+#### 2.1.2
+
+* Изменён параметр customerReceipt на receipt в объекте Recurrent
 
 #### 2.1.1 
 

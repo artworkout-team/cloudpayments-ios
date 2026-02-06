@@ -66,7 +66,6 @@ public class PaymentForm: BaseViewController {
     
     public override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        self.makeContainerCorners()
     }
     
     // MARK: - Close button method on PaymentForm
@@ -75,13 +74,6 @@ public class PaymentForm: BaseViewController {
         self.hide { [weak self] in
             self?.configuration.paymentUIDelegate.paymentFormDidHide()
         }
-    }
-    
-    internal func makeContainerCorners(){
-        let path = UIBezierPath(roundedRect: self.containerView.bounds, byRoundingCorners: [.topLeft, .topRight], cornerRadii: CGSize(width: 20, height: 20))
-        let mask = CAShapeLayer()
-        mask.path = path.cgPath
-        self.containerView.layer.mask = mask
     }
     
     internal func chargeIntentApi(cardCryptogramPacket: String, email: String?, completion: PaymentCallbackIntentApi?) {

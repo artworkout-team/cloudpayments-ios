@@ -117,7 +117,7 @@ final class DemoViewController: BaseViewController {
         let recurrent = Recurrent(
             interval: "Week",
             period: 1,
-            customerReceipt: receipt,
+            receipt: receipt,
             amount: 1.95
         )
         
@@ -144,8 +144,8 @@ final class DemoViewController: BaseViewController {
             .setPayer(payer)
             .setEmail(email)
             .setJsonData(jsonData)
-            .setReceipt(receipt)
-            .setRecurrent(recurrent)
+//            .setReceipt(receipt)
+//            .setRecurrent(recurrent)
         
         let configuration = PaymentConfiguration(
             publicId: publicId,

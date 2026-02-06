@@ -13,12 +13,12 @@ public struct Recurrent {
     public let period: Int
     public let startDate: String?
     public let maxPeriods: Int?
-    public let customerReceipt: [String: Any]?
+    public let receipt: [String: Any]?
     
-    public init(interval: String, period: Int, customerReceipt: [String: Any]? = nil, amount: Double? = nil, startDate: String? = nil, maxPeriods: Int? = nil) {
+    public init(interval: String, period: Int, receipt: [String: Any]? = nil, amount: Double? = nil, startDate: String? = nil, maxPeriods: Int? = nil) {
         self.interval = interval
         self.period = period
-        self.customerReceipt = customerReceipt
+        self.receipt = receipt
         self.amount = amount
         self.startDate = startDate
         self.maxPeriods = maxPeriods
@@ -32,8 +32,8 @@ extension Recurrent {
             "period": period
         ]
         
-        if let customerReceipt = customerReceipt {
-            dict["customerReceipt"] = customerReceipt
+        if let receipt = receipt {
+            dict["receipt"] = receipt
         }
         if let amount = amount {
             dict["amount"] = amount
