@@ -177,7 +177,7 @@ final class AnalyticsService {
                               actionType: String,
                               screenName: String,
                               methodChosen: String? = nil,
-                              cardContext: String? = nil) {
+                              actionContext: String? = nil) {
         let context = buildContext(configuration: configuration)
         
         let event = AnalyticsActionEvent(
@@ -189,7 +189,7 @@ final class AnalyticsService {
                 elementType: elementType,
                 actionType: actionType,
                 methodChosen: methodChosen,
-                context: cardContext
+                context: actionContext
             ),
             eventParameters: .init(
                 clientEventTimestamp: context.timestamp,

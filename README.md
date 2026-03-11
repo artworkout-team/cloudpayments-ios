@@ -221,6 +221,10 @@ extension CheckoutViewController: ThreeDsDelegate {
 
 ### История обновлений:
 
+#### 2.1.3
+
+* Исправлена ошибка 3дс в тестовом режиме при оплате банковской картой
+
 #### 2.1.2
 
 * Изменён параметр customerReceipt на receipt в объекте Recurrent

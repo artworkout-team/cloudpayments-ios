@@ -61,6 +61,12 @@ final class PaymentCardViewController: BaseViewController {
             AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "CardNumber", elementType: "Input", actionType: "Fill", screenName: "/methods/card-edit", methodChosen: "Card")
         }
         
+        contentVC.onCardDataFillStarted = { [weak self] in
+            guard let self else { return }
+
+            AnalyticsService.shared.sendActionClickEvent(configuration: self.configuration, elementLabel: "CardDataFillStarted", elementType: "Input", actionType: "Fill", screenName: "/methods/card-edit", methodChosen: "Card")
+        }
+        
         contentVC.requestBinInfo = { [weak self] cleanCard, completion in
             guard let self = self else { return }
             CloudpaymentsApi.getBinInfoWithIntentId(cleanCardNumber: cleanCard, with: self.configuration) { model, success in
@@ -72,6 +78,30 @@ final class PaymentCardViewController: BaseViewController {
                 )
                 completion(info)
             }
+        }
+        
+        contentVC.onCardTypeDefined = { [weak self] type in
+            guard let self else { return }
+
+            AnalyticsService.shared.sendScreenOpenedEvent(configuration: configuration, screenName: "/methods/card-edit", methodChosen: "Card", cardFieldsCount: 3, eventType: "CardTypeDefinition")
+        }
+        
+        contentVC.onExpiredDateFilled = { [weak self] in
+            guard let self else { return }
+
+            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "ExpiredDate", elementType: "Input", actionType: "Fill", screenName: "/methods/card-edit", methodChosen: "Card")
+        }
+
+        contentVC.onCvvFilled = { [weak self] in
+            guard let self else { return }
+
+            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "CVV", elementType: "Input", actionType: "Fill", screenName: "/methods/card-edit", methodChosen: "Card")
+        }
+        
+        contentVC.onCardDataFillFinished = { [weak self] in
+            guard let self else { return }
+            
+            AnalyticsService.shared.sendActionClickEvent(configuration: self.configuration, elementLabel: "CardDataFillFinished", elementType: "Input", actionType: "Fill", screenName: "/methods/card-edit", methodChosen: "Card")
         }
         
         contentVC.onPayTapped = { [weak self] card, exp, cvv in
@@ -94,7 +124,7 @@ final class PaymentCardViewController: BaseViewController {
                 return
             }
             
-            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "PayByCard", elementType: "Button", actionType: "Click", screenName: "/methods/card-edit", methodChosen: "Card", cardContext: "Valid")
+            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "PayByCard", elementType: "Button", actionType: "Click", screenName: "/methods/card-edit", methodChosen: "Card", actionContext: "Valid")
             
             let parent = self.presentingViewController
             self.dismiss(animated: true) {

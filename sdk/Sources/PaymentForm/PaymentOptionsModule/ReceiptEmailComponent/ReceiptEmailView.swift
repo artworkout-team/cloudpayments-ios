@@ -175,3 +175,24 @@ final class ReceiptEmailView: UIView, UITextFieldDelegate {
         case error(String)
     }
 }
+
+extension ReceiptEmailView {
+
+    /// Email введён и валиден с учётом emailBehavior и switch
+    func isEmailValid() -> Bool {
+        let trimmed = email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return false }
+
+        switch emailBehavior {
+        case .required:
+            return trimmed.emailIsValid()
+
+        case .optional:
+            guard isReceiptSwitchOn?() == true else { return false }
+            return trimmed.emailIsValid()
+
+        case .hidden:
+            return false
+        }
+    }
+}

@@ -23,6 +23,7 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     private(set) var additionalMethods: [PaymentMethodType] = []
     private(set) var displayedMethods: [PaymentMethodType] = []
     private(set) var showAdditional = false
+    private var emailFillEventSent = false
     private let additionalButtonID = "additionalButton"
     private var moreButton: UIView?
     var onContentChanged: (() -> Void)?
@@ -406,6 +407,10 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     }
     
     @objc private func receiptSwitchChanged(_ sender: UISwitch) {
+        let context = sender.isOn ? "On" : "Off"
+        
+        AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "SendEmail", elementType: "Checkbox", actionType: "Click", screenName: "/methods", actionContext: context)
+        
         guard let emailView = emailContainer,
               let stack = sender.superview?.superview as? UIStackView else { return }
         
@@ -602,6 +607,13 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         }
         
         sender.startLoading(loaderImage: .ic_button_logo)
+        
+        if !emailFillEventSent, let emailView = emailContainer, let email = emailView.email, emailView.isEmailValid() {
+            
+            AnalyticsService.shared.sendActionClickEvent(configuration: configuration, elementLabel: "Email", elementType: "Input", actionType: "Fill", screenName: "/methods", methodChosen: methodType.rawValue, actionContext: email)
+            
+            emailFillEventSent = true
+        }
         
         delegate?.didSelect(method: methodType)
         

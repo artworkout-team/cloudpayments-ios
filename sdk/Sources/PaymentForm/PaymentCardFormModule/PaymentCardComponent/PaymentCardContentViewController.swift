@@ -77,6 +77,19 @@ final class PaymentCardContentViewController: BaseViewController {
     private let cvvContainer = UIView()
     private var cardNumberTimer: Timer?
     private var lastScheduledCleanCard: String?
+    private var detectedCardType: CardType?
+    
+    private var cardFillStartedSent = false
+    private var cardFillFinishedSent = false
+    private var cardTypeDefinitionSent = false
+    private var expiredDateEventSent = false
+    private var cvvEventSent = false
+    
+    var onCardDataFillStarted: (() -> Void)?
+    var onCardDataFillFinished: (() -> Void)?
+    var onCardTypeDefined: ((CardType) -> Void)?
+    var onExpiredDateFilled: (() -> Void)?
+    var onCvvFilled: (() -> Void)?
 
     private let cardTypeIcon: UIImageView = {
         let iv = UIImageView()
@@ -362,6 +375,10 @@ final class PaymentCardContentViewController: BaseViewController {
 
         // Кнопка
         let enabled = allValid()
+        if enabled && !cardFillFinishedSent {
+            cardFillFinishedSent = true
+            onCardDataFillFinished?()
+        }
         payButton.isUserInteractionEnabled = enabled
         payButton.alpha = enabled ? 1 : 0.3
     }
@@ -385,15 +402,25 @@ final class PaymentCardContentViewController: BaseViewController {
     @objc private func didChange(_ tf: UITextField) {
         if tf === cardNumberField {
             cardNumberField.text = cardNumberField.text?.formattedCardNumber()
-            
+            if !cardFillStartedSent {
+                cardFillStartedSent = true
+                onCardDataFillStarted?()
+            }
             let clean = Card.cleanCreditCardNo(cardNumberField.text ?? "")
             updatePaymentSystemIcon(with: clean)
-            
             scheduleBinLookupIfNeeded()
         } else if tf === expiryField {
             expiryField.expCardText = expiryField.text?.formattedCardExp()
+            if !expiredDateEventSent, let exp = expiryField.text?.formattedCardExp(), Card.isExpDateValid(exp) {
+                expiredDateEventSent = true
+                onExpiredDateFilled?()
+            }
         } else if tf === cvvField {
             cvvField.text = cvvField.text?.formattedCardCVV()
+            if !cvvEventSent, let cvv = cvvField.text?.formattedCardCVV(), Card.isValidCvv(cvv: cvv, isCvvRequired: isCvvRequired) {
+                cvvEventSent = true
+                onCvvFilled?()
+            }
             updateEyeIcon()
         }
         applyVisualState()
@@ -418,10 +445,15 @@ final class PaymentCardContentViewController: BaseViewController {
     // MARK: Helpers for accessories
     private func updatePaymentSystemIcon(with cardNumber: String?) {
         guard let num = cardNumber else { cardTypeIcon.isHidden = true; return }
-        let t = Card.cardType(from: num)
-        if t != .unknown {
-            cardTypeIcon.image = t.getIcon()
+        let type = Card.cardType(from: num)
+        if type != .unknown {
+            cardTypeIcon.image = type.getIcon()
             cardTypeIcon.isHidden = false
+            if !cardTypeDefinitionSent || detectedCardType != type {
+                cardTypeDefinitionSent = true
+                detectedCardType = type
+                onCardTypeDefined?(type)
+            }
         } else {
             cardTypeIcon.isHidden = true
         }
