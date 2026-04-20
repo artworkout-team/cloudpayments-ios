@@ -80,8 +80,6 @@ final class PaymentOptionsForm: PaymentForm, PKPaymentAuthorizationViewControlle
 
         configureApplePayContainers()
         self.hideKeyboardWhenTappedAround()
-        
-        setupProgressViewForButtons()
 //        createIntentMethod(configuration: configuration)
         paymentLabel.textColor = .mainText
     }
@@ -92,23 +90,6 @@ final class PaymentOptionsForm: PaymentForm, PKPaymentAuthorizationViewControlle
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-    }
-    
-    private func setupProgressViewForButtons() {
-        loaderTPayView.superview?.isHidden = true
-        loaderSBPView.superview?.isHidden = true
-        
-        loaderTPayView.addSubview(progressTPayView)
-        loaderSBPView.addSubview(progressSBPView)
-        
-        progressTPayView.fullConstraint()
-        progressSBPView.fullConstraint()
-        
-        progressTPayView.baseColor = .clear
-        progressSBPView.baseColor = .clear
-        
-        progressTPayView.progressColor = .white
-        progressSBPView.progressColor = .white
     }
         
     private func configureApplePayContainers() {
@@ -130,9 +111,9 @@ final class PaymentOptionsForm: PaymentForm, PKPaymentAuthorizationViewControlle
         super.onKeyboardWillShow(notification)
         isOnKeyboard = true
         self.heightConstraint.constant = self.keyboardFrame.height
-        UIView.animate(withDuration: 0.35, delay: 0) {
-            self.view.layoutIfNeeded()
-        }
+//        UIView.animate(withDuration: 0.35, delay: 0) {
+//            self.view.layoutIfNeeded()
+//        }
     }
     
     @objc override func onKeyboardWillHide(_ notification: Notification) {

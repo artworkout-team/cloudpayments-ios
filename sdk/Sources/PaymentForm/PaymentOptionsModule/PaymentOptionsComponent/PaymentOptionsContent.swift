@@ -103,12 +103,12 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         super.viewWillAppear(animated)
         self.restoreFromConfiguration()
     }
-   
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateScrollForKeyboard()
     }
-        
+    
     private func updateScrollForKeyboard() {
         guard let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView else { return }
         
@@ -483,36 +483,59 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         
         switch state {
         case .optional:
-            let container = UIStackView()
-            container.axis = .horizontal
-            container.spacing = 8
-            container.alignment = .center
-            container.distribution = .fill
+            let container = UIView()
+            container.translatesAutoresizingMaskIntoConstraints = false
             
             let label = UILabel()
+            label.translatesAutoresizingMaskIntoConstraints = false
             label.text = "Сохранить данные карты или счёта"
             label.font = .systemFont(ofSize: 15)
             label.textColor = .label
+            label.numberOfLines = 1
+            label.lineBreakMode = .byTruncatingTail
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.8
             
             let infoButton = UIButton(type: .custom)
+            infoButton.translatesAutoresizingMaskIntoConstraints = false
             infoButton.setImage(.icn_attention, for: .normal)
             infoButton.addTarget(self, action: #selector(showTooltip), for: .touchUpInside)
-            infoButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
-            infoButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
             
             let toggle = UISwitch()
+            toggle.translatesAutoresizingMaskIntoConstraints = false
             toggle.isOn = isSelected
             toggle.onTintColor = .colorBlue
             saveCardSwitch = toggle
             
-            let labelStack = UIStackView(arrangedSubviews: [label, infoButton])
-            labelStack.axis = .horizontal
-            labelStack.spacing = 4
-            labelStack.alignment = .center
+            container.addSubview(label)
+            container.addSubview(infoButton)
+            container.addSubview(toggle)
             
-            container.addArrangedSubview(labelStack)
-            container.addArrangedSubview(UIView())
-            container.addArrangedSubview(toggle)
+            NSLayoutConstraint.activate([
+                container.heightAnchor.constraint(equalToConstant: 31),
+                
+                toggle.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                toggle.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                
+                label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                
+                infoButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 4),
+                infoButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                infoButton.widthAnchor.constraint(equalToConstant: 24),
+                infoButton.heightAnchor.constraint(equalToConstant: 24),
+                
+                infoButton.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -8)
+            ])
+            
+            label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            
+            infoButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+            infoButton.setContentHuggingPriority(.required, for: .horizontal)
+            
+            toggle.setContentCompressionResistancePriority(.required, for: .horizontal)
+            toggle.setContentHuggingPriority(.required, for: .horizontal)
             
             buttonsStack.addArrangedSubview(container)
             saveCardContainer = container
