@@ -22,7 +22,9 @@ final class BottomSheetPaymentOptionsViewModel {
         self.configuration = configuration
     }
     
-    func loadPublicKeyAndCreateIntent(completion: @escaping (Result<([PaymentMethod], [String]?, PaymentIntentResponse), Error>) -> Void) {
+    func loadPublicKeyAndCreateIntent(
+        completion: @escaping (Result<([PaymentMethod], [String]?, PaymentIntentResponse), Error>) -> Void
+    ) {
         CloudpaymentsApi.getPublicKey { [weak self] publicKey, _ in
             guard let self else { return }
             guard let pem = publicKey?.Pem, let version = publicKey?.Version else {
@@ -97,43 +99,62 @@ final class BottomSheetPaymentOptionsViewModel {
                 
                 let isSaveCard = intent.terminalInfo?.features?.isSaveCard
                 let tokenize = intent.tokenize
+                
                 if let rawState = isSaveCard,
                    let saveState = IntentSaveCardState(rawValue: rawState) {
                     configuration.paymentData.intentSaveCardState = saveState
                     configuration.paymentData.savedTokenize = tokenize
                 }
+                
                 completion(.success((methods, intentPaymentMethodSequence, intent)))
             }
         }
     }
     
-    private func savePaymentLinks(from methods: [PaymentMethod]) {
+    private func savePaymentLinks(from methods: [PaymentMethod]) {        
         for method in methods {
             guard let typeString = method.type,
-                  let type = PaymentMethodType(rawValue: typeString) else { continue }
+                  let type = PaymentMethodType(rawValue: typeString) else {
+                continue
+            }
             
             switch type {
             case .tpay:
                 if let link = method.link {
                     configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для TPay: \(link)")
                 }
+                
             case .sberPay:
                 if let data = method.data {
                     configuration.paymentData.sberPayData = data
+                    print("Сохранили data для SberPay")
                 }
+                
             case .sbp:
                 if let link = method.link {
                     configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для Sbp: \(link)")
                 }
                 if let banks = method.banks {
                     configuration.paymentData.sbpBanks = banks
+                    print("Сохранили банки для Sbp: \(banks.count)")
                 }
+                
             case .dolyame:
                 if let link = method.link {
                     configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для Dolyame: \(link)")
                 }
+                
+            case .foreignCard:
+                if let link = method.link {
+                    configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для альтовой ForeignCard: \(link)")
+                }
+                
             case .card:
-                break
+                print("Card: link не сохраняем")
             }
         }
     }

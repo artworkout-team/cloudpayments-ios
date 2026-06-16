@@ -145,6 +145,7 @@ struct PaymentMethod: Codable {
     let env: String?
     let deepLink: String?
     let banks: [Bank]?
+    let isForeignCardEnabled: Bool?
 }
 
 struct Bank: Codable {

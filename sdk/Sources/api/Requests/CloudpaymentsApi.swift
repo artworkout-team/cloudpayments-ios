@@ -318,21 +318,54 @@ public class CloudpaymentsApi {
             "puid": puid
         ]
         
-        guard let tpayLink = configuration.paymentData.paymentLinks["Dolyame"] else {
+        guard let dolyameLink = configuration.paymentData.paymentLinks["Dolyame"] else {
             print("[getDolyameLinkIntentApi] Ссылка Dolyame отсутствует в paymentLinks")
             handler(nil, nil)
             return
         }
         
-        print("[getDolyameLinkIntentApi] Ссылка Dolyame: \(tpayLink)")
+        print("[getDolyameLinkIntentApi] Ссылка Dolyame: \(dolyameLink)")
         
-        let request = DolyameLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: tpayLink)
+        let request = DolyameLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: dolyameLink)
         
-        print("[getDolyameLinkIntentApi] Формируем запрос с URL: \(tpayLink)")
+        print("[getDolyameLinkIntentApi] Формируем запрос с URL: \(dolyameLink)")
         print("[getDolyameLinkIntentApi] Query Items: \(queryItems)")
         
         request.executeWithStatusCode { statusCode, resultLink in
             print("[getDolyameLinkIntentApi] Получена ссылка: \(resultLink)")
+            handler(statusCode, resultLink)
+            
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
+            
+        } onError: { statusCode, error in
+            handler(statusCode, nil)
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
+        }
+    }
+    
+    public class func getAltForeignCardLinkIntentApi(puid: String,
+                                           configuration: PaymentConfiguration,
+                                           completion handler: @escaping (Int?, String?) -> Void) {
+        let queryItems = [
+            "webview": "false",
+            "puid": puid
+        ]
+        
+        guard let altForeignCardLink = configuration.paymentData.paymentLinks["ForeignCard"] else {
+            print("[getAltForeignCardLinkIntentApi] Ссылка Dolyame отсутствует в paymentLinks")
+            handler(nil, nil)
+            return
+        }
+        
+        print("[getAltForeignCardLinkIntentApi] Ссылка Dolyame: \(altForeignCardLink)")
+        
+        let request = AltForeignCardLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: altForeignCardLink)
+        
+        print("[getAltForeignCardLinkIntentApi] Формируем запрос с URL: \(altForeignCardLink)")
+        print("[getAltForeignCardLinkIntentApi] Query Items: \(queryItems)")
+        
+        request.executeWithStatusCode { statusCode, resultLink in
+            print("[getAltForeignCardLinkIntentApi] Получена ссылка: \(resultLink)")
             handler(statusCode, resultLink)
             
             LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
@@ -362,6 +395,8 @@ public class CloudpaymentsApi {
             observerName = ObserverKeys.intentCardObserver.key
         case .dolyame:
             observerName = ObserverKeys.intentDolyameObserver.key
+        case .foreignCard:
+            observerName = ObserverKeys.intentAltForeignCardObserver.key
         }
         
         request.executeWithStatusCode { statusCode, value in

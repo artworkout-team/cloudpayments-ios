@@ -11,13 +11,21 @@ import Foundation
 
 public final class PaymentOptionsViewController: BaseViewController {
     
-    // MARK: - Life cycle
+    enum ResolvedPaymentMethodKind {
+        case regular
+        case cardForeign
+    }
+    
+    struct ResolvedPaymentMethod {
+        let method: PaymentMethod
+        let displayType: PaymentMethodType
+        let kind: ResolvedPaymentMethodKind
+    }
     
     private let loaderView = LoaderView()
     private let configuration: PaymentConfiguration
     private let viewModel: BottomSheetPaymentOptionsViewModel
     private let skipLoader: Bool
-    private var isLoading = false
     
     init(configuration: PaymentConfiguration, skipLoader: Bool = false) {
         self.configuration = configuration
@@ -37,11 +45,17 @@ public final class PaymentOptionsViewController: BaseViewController {
     // MARK: - Present
     
     @discardableResult
-    public class func present(with configuration: PaymentConfiguration, from presentingViewController: UIViewController, skipLoader: Bool = false, completion: (() -> ())? = nil) -> PaymentOptionsViewController {
+    public class func present(
+        with configuration: PaymentConfiguration,
+        from presentingViewController: UIViewController,
+        skipLoader: Bool = false,
+        completion: (() -> ())? = nil
+    ) -> PaymentOptionsViewController {
         let controller = PaymentOptionsViewController(configuration: configuration, skipLoader: skipLoader)
         presentingViewController.present(controller, animated: true) {
             completion?()
         }
+        
         if !configuration.paymentData.analyticsSessionStarted {
             AnalyticsService.shared.startSession()
             AnalyticsService.shared.sendScreenOpenedEvent(
@@ -52,6 +66,7 @@ public final class PaymentOptionsViewController: BaseViewController {
             )
             configuration.paymentData.analyticsSessionStarted = true
         }
+        
         return controller
     }
     
@@ -67,12 +82,15 @@ public final class PaymentOptionsViewController: BaseViewController {
     
     public override func viewDidLoad() {
         super.viewDidLoad()
+        
         if skipLoader,
-           let methods = configuration.paymentData.cachedMethods, !methods.isEmpty {
+           let methods = configuration.paymentData.cachedMethods,
+           !methods.isEmpty {
             presentOptions(methods: methods, paymentMethodSequence: nil, intent: nil)
         } else {
             showLoading()
         }
+        
         LoggerService.shared.startLogging(publicId: configuration.publicId)
     }
     
@@ -104,15 +122,26 @@ public final class PaymentOptionsViewController: BaseViewController {
         loaderView(isOn: true) {
             self.viewModel.loadPublicKeyAndCreateIntent { [weak self] result in
                 DispatchQueue.main.async {
-                    guard let self = self else { return }
+                    guard let self else { return }
+                    
                     switch result {
                     case .success(let (methods, paymentMethodSequence, intent)):
                         self.loaderView(isOn: false) {
-                            self.presentOptions(methods: methods, paymentMethodSequence: paymentMethodSequence, intent: intent)
+                            self.presentOptions(
+                                methods: methods,
+                                paymentMethodSequence: paymentMethodSequence,
+                                intent: intent
+                            )
                         }
-                    case .failure(_):
+                        
+                    case .failure:
                         self.loaderView(isOn: false) {
-                            AnalyticsService.shared.sendScreenOpenedEvent(configuration: self.configuration, screenName: "/static-error", cardFieldsCount: 0, eventType: "Open")
+                            AnalyticsService.shared.sendScreenOpenedEvent(
+                                configuration: self.configuration,
+                                screenName: "/static-error",
+                                cardFieldsCount: 0,
+                                eventType: "Open"
+                            )
                             self.showAlert(title: .errorWord, message: .errorConfiguration) {
                                 self.dismiss(animated: true)
                             }
@@ -123,9 +152,164 @@ public final class PaymentOptionsViewController: BaseViewController {
         }
     }
     
-    private func presentOptions(methods: [PaymentMethod], paymentMethodSequence: [String]?, intent: PaymentIntentResponse?) {
+    private func resolveMethods(
+        from methods: [PaymentMethod],
+        paymentMethodSequence: [String]?
+    ) -> [ResolvedPaymentMethod] {
+        let hasAlternativeForeignCard = methods.contains {
+            ($0.type ?? "") == PaymentMethodType.foreignCard.rawValue
+        }
+        
+        let cardMethod = methods.first {
+            ($0.type ?? "") == PaymentMethodType.card.rawValue
+        }
+        
+        let sequence: [String]
+        if let paymentMethodSequence, !paymentMethodSequence.isEmpty {
+            sequence = paymentMethodSequence
+        } else {
+            sequence = configuration.paymentMethodSequence.map(\.rawValue)
+        }
+        
+        var resolved: [ResolvedPaymentMethod] = []
+        var usedTypes = Set<String>()
+        
+        func appendCardIfNeeded() {
+            guard let cardMethod else {
+                return
+            }
+            
+            guard !usedTypes.contains(PaymentMethodType.card.rawValue) else {
+                return
+            }
+            
+            resolved.append(
+                ResolvedPaymentMethod(
+                    method: cardMethod,
+                    displayType: .card,
+                    kind: .regular
+                )
+            )
+            usedTypes.insert(PaymentMethodType.card.rawValue)
+            
+            if cardMethod.isForeignCardEnabled == true && !hasAlternativeForeignCard {
+                resolved.append(
+                    ResolvedPaymentMethod(
+                        method: cardMethod,
+                        displayType: .foreignCard,
+                        kind: .cardForeign
+                    )
+                )
+            }
+        }
+        
+        func appendAlternativeForeignCardIfNeeded() {
+            guard !usedTypes.contains(PaymentMethodType.foreignCard.rawValue) else {
+                return
+            }
+            
+            guard let method = methods.first(where: { ($0.type ?? "") == PaymentMethodType.foreignCard.rawValue }) else {
+                return
+            }
+            
+            resolved.append(
+                ResolvedPaymentMethod(
+                    method: method,
+                    displayType: .foreignCard,
+                    kind: .regular
+                )
+            )
+            usedTypes.insert(PaymentMethodType.foreignCard.rawValue)
+        }
+        
+        for rawType in sequence {
+            guard let type = PaymentMethodType(rawValue: rawType) else {
+                continue
+            }
+            
+            switch type {
+            case .card:
+                appendCardIfNeeded()
+                
+            case .foreignCard:
+                appendAlternativeForeignCardIfNeeded()
+                
+            default:
+                guard !usedTypes.contains(rawType) else {
+                    continue
+                }
+                
+                guard let method = methods.first(where: { ($0.type ?? "") == rawType }) else {
+                    continue
+                }
+                
+                resolved.append(
+                    ResolvedPaymentMethod(
+                        method: method,
+                        displayType: type,
+                        kind: .regular
+                    )
+                )
+                usedTypes.insert(rawType)
+            }
+        }
+        
+        for method in methods {
+            guard let rawType = method.type,
+                  let type = PaymentMethodType(rawValue: rawType) else {
+                continue
+            }
+            
+            guard !usedTypes.contains(rawType) else {
+                continue
+            }
+            
+            switch type {
+            case .card:
+                appendCardIfNeeded()
+                
+            case .foreignCard:
+                appendAlternativeForeignCardIfNeeded()
+                
+            default:
+                resolved.append(
+                    ResolvedPaymentMethod(
+                        method: method,
+                        displayType: type,
+                        kind: .regular
+                    )
+                )
+                usedTypes.insert(rawType)
+            }
+        }
+        
+        print("Итоговое количество кнопок: \(resolved.count)")
+        return resolved
+    }
+    
+    private func presentOptions(
+        methods: [PaymentMethod],
+        paymentMethodSequence: [String]?,
+        intent: PaymentIntentResponse?
+    ) {
+        let resolvedMethods = resolveMethods(
+            from: methods,
+            paymentMethodSequence: paymentMethodSequence
+        )
+        
         if let singleMode = configuration.singlePaymentMode {
-            guard let method = methods.first(where: { $0.type == singleMode.rawValue }) else {
+            
+            if singleMode == .card {
+                let hasCard = resolvedMethods.contains { $0.displayType == .card }
+                let hasForeignCard = resolvedMethods.contains { $0.displayType == .foreignCard }
+                
+                if hasCard && hasForeignCard {
+                    showOptionsScreen(methods: resolvedMethods, intent: intent)
+                    return
+                }
+            }
+            
+            guard let resolved = resolvedMethods.first(where: { $0.displayType.rawValue == singleMode.rawValue }) else {
                 if configuration.showResultScreenForSinglePaymentMode {
                     showAlert(title: .errorWord, message: .errorConfiguration) {
                         self.dismiss(animated: true)
@@ -135,60 +319,45 @@ public final class PaymentOptionsViewController: BaseViewController {
                 }
                 return
             }
-
-            switch singleMode {
-            case .card:
-                launchDirectFlowCard(for: method)
-            case .sbp:
-                launchDirectFlowSbp(for: method)
-            default:
-                launchDirectFlowOtherMethods(for: method)
-            }
+            
+            launchResolvedMethod(resolved)
             return
         }
-
-        let sequence: [String]
-        if let paymentMethodSequence, !paymentMethodSequence.isEmpty {
-            sequence = paymentMethodSequence
-        } else {
-            sequence = configuration.paymentMethodSequence.map(\.rawValue)
-        }
-
-        var prioritized: [PaymentMethod] = []
-        for type in sequence {
-            if let method = methods.first(where: { $0.type == type }) {
-                prioritized.append(method)
-            }
-        }
-        for method in methods where !sequence.contains(method.type ?? "") {
-            prioritized.append(method)
-        }
-
-        let targetMethods = prioritized
         
-        if targetMethods.count == 1, let single = targetMethods.first {
-            guard let type = PaymentMethodType(rawValue: single.type ?? "") else {
-                showAlert(title: .errorWord, message: .errorConfiguration) {
-                    self.dismiss(animated: true)
-                }
-                return
-            }
-            switch type {
-            case .card: launchDirectFlowCard(for: single)
-            case .sbp:  launchDirectFlowSbp(for: single)
-            default:    launchDirectFlowOtherMethods(for: single)
-            }
+        if resolvedMethods.count == 1, let single = resolvedMethods.first {
+            launchResolvedMethod(single)
         } else {
-            showOptionsScreen(methods: targetMethods, intent: intent)
+            showOptionsScreen(methods: resolvedMethods, intent: intent)
         }
     }
+    
+    private func launchResolvedMethod(_ resolved: ResolvedPaymentMethod) {
         
-    private func showOptionsScreen(methods: [PaymentMethod], intent: PaymentIntentResponse?) {
+        switch resolved.displayType {
+        case .card:
+            launchDirectFlowCard(for: resolved)
+            
+        case .foreignCard:
+            switch resolved.kind {
+            case .cardForeign:
+                launchDirectFlowCard(for: resolved)
+            case .regular:
+                launchDirectFlowOtherMethods(for: resolved)
+            }
+        case .sbp:
+            launchDirectFlowSbp(for: resolved.method)
+        default:
+            launchDirectFlowOtherMethods(for: resolved)
+        }
+    }
+    
+    private func showOptionsScreen(methods: [ResolvedPaymentMethod], intent: PaymentIntentResponse?) {
         let viewModel = BottomSheetViewModel(cornerRadius: 20)
         let saveCardState = configuration.paymentData.intentSaveCardState
         let savedTokenize = configuration.paymentData.savedTokenize ?? false
         let emailBehavior = configuration.emailBehavior
         let email = configuration.paymentData.email
+        
         let contentVC = BottomSheetPaymentOptionsContentViewController(
             methods: methods,
             saveCardState: saveCardState,
@@ -197,6 +366,7 @@ public final class PaymentOptionsViewController: BaseViewController {
             email: email,
             configuration: configuration
         )
+        
         contentVC.delegate = self
         contentVC.onContentChanged = { [weak self] in
             guard let self else { return }
@@ -204,19 +374,23 @@ public final class PaymentOptionsViewController: BaseViewController {
             self.configuration.paymentData.isSaveCardSelected = contentVC.saveCardSwitch?.isOn
             self.configuration.paymentData.isReceiptSelected = contentVC.receiptSwitch?.isOn
         }
+        
         let sheet = BottomSheetController(viewModel: viewModel, content: contentVC)
         sheet.present(in: self)
         
-        if let intent = intent {
+        if let intent {
             let displayedMethods = contentVC.displayedMethods.map { $0.rawValue }
             let methodsAvailable = (contentVC.displayedMethods + contentVC.additionalMethods).map { $0.rawValue }
             configuration.paymentData.methodsAvailable = methodsAvailable
             
-            AnalyticsService.shared.sendScreenOpenedEvent(configuration: self.configuration,
-                                                          screenName: "Start",
-                                                          methodsAvailable: methodsAvailable,
-                                                          cardFieldsCount: 0,
-                                                          eventType: "Open")
+            AnalyticsService.shared.sendScreenOpenedEvent(
+                configuration: configuration,
+                screenName: "Start",
+                methodsAvailable: methodsAvailable,
+                cardFieldsCount: 0,
+                eventType: "Open"
+            )
+            
             AnalyticsService.shared.sendPaymentMethodsStartSessionEvent(
                 configuration: configuration,
                 intent: intent,
@@ -229,7 +403,7 @@ public final class PaymentOptionsViewController: BaseViewController {
             guard let self else { return }
             if isSwipe {
                 AnalyticsService.shared.sendActionClickEvent(
-                    configuration: configuration,
+                    configuration: self.configuration,
                     elementLabel: "Close",
                     elementType: "Modal",
                     actionType: "Close",
@@ -239,10 +413,13 @@ public final class PaymentOptionsViewController: BaseViewController {
         }
     }
     
-    private func launchDirectFlowCard(for method: PaymentMethod) {
-        guard let type = PaymentMethodType(rawValue: method.type ?? "") else { return }
-        guard type == .card else { return }
+    private func launchDirectFlowCard(for resolved: ResolvedPaymentMethod) {
+        print("type = \(resolved.displayType.rawValue)")
+        
+        guard resolved.displayType == .card || resolved.displayType == .foreignCard else { return }
+        
         let nextVC = PaymentCardViewController(configuration: configuration, useDimming: false)
+        
         children.forEach {
             $0.willMove(toParent: nil)
             $0.view.removeFromSuperview()
@@ -254,18 +431,21 @@ public final class PaymentOptionsViewController: BaseViewController {
         nextVC.view.alpha = 0
         view.addSubview(nextVC.view)
         
-        UIView.animate(withDuration: 0.35, animations: {
+        UIView.animate(withDuration: 0.35) {
             nextVC.view.alpha = 1
-        })
+        }
         
         nextVC.didMove(toParent: self)
     }
     
-    private func launchDirectFlowOtherMethods(for method: PaymentMethod) {
-        guard let type = PaymentMethodType(rawValue: method.type ?? "") else { return }
-        guard let controller = self.presentingViewController else { return }
+    private func launchDirectFlowOtherMethods(for resolved: ResolvedPaymentMethod) {
+        let type = resolved.displayType
         
-        self.dismiss(animated: false) {
+        guard let controller = presentingViewController else {
+            return
+        }
+        
+        dismiss(animated: false) {
             switch type {
             case .tpay:
                 ProgressTPayViewController.present(with: self.configuration, from: controller)
@@ -273,7 +453,10 @@ public final class PaymentOptionsViewController: BaseViewController {
                 ProgressSberPayViewController.present(with: self.configuration, from: controller)
             case .dolyame:
                 ProgressDolyameViewController.present(with: self.configuration, from: controller)
-            default: break
+            case .foreignCard:
+                ProgressAltForeignCardViewController.present(with: self.configuration, from: controller)
+            default:
+                break
             }
         }
     }
@@ -281,37 +464,38 @@ public final class PaymentOptionsViewController: BaseViewController {
     private func launchDirectFlowSbp(for method: PaymentMethod) {
         guard let type = PaymentMethodType(rawValue: method.type ?? "") else { return }
         guard type == .sbp else { return }
-
+        
         let presenter = ProgressSbpPresenter(configuration: configuration)
         let nextVC = ProgressSbpViewController(presenter: presenter, useDimming: false)
         presenter.view = nextVC
-
+        
         children.forEach {
             $0.willMove(toParent: nil)
             $0.view.removeFromSuperview()
             $0.removeFromParent()
         }
-
+        
         addChild(nextVC)
         nextVC.view.frame = view.bounds
         nextVC.view.alpha = 0
         view.addSubview(nextVC.view)
         
-        UIView.animate(withDuration: 0.35, animations: {
+        UIView.animate(withDuration: 0.35) {
             nextVC.view.alpha = 1
-        })
+        }
         
         nextVC.didMove(toParent: self)
     }
 }
 
 private extension PaymentOptionsViewController {
+    
     func loaderView(isOn: Bool, completion: @escaping () -> Void) {
         if isOn {
-            self.loaderView.isHidden = false
-            self.loaderView.startAnimated()
+            loaderView.isHidden = false
+            loaderView.startAnimated()
         } else {
-            self.loaderView.endAnimated()
+            loaderView.endAnimated()
         }
         
         UIView.animate(withDuration: 0.2) {
@@ -325,13 +509,17 @@ private extension PaymentOptionsViewController {
 }
 
 extension PaymentOptionsViewController: BottomSheetPaymentOptionsSelectionButtonDelegate {
-    func didSelect(method: PaymentMethodType) {
-        if let sheet = self.children.first(where: { $0 is BottomSheetController }) as? BottomSheetController,
-           let content = sheet.children.first(where: { $0 is BottomSheetPaymentOptionsContentViewController })
-            as? BottomSheetPaymentOptionsContentViewController {
-            self.configuration.paymentData.isAdditionalMethodsExpanded = content.showAdditional
-            self.configuration.paymentData.isSaveCardSelected = content.saveCardSwitch?.isOn
-            self.configuration.paymentData.isReceiptSelected = content.receiptSwitch?.isOn
+    
+    func didSelect(method resolved: ResolvedPaymentMethod) {
+        let method = resolved.displayType
+        
+        print("Выбран метод: \(method.rawValue)")
+        
+        if let sheet = children.first(where: { $0 is BottomSheetController }) as? BottomSheetController,
+           let content = sheet.children.first(where: { $0 is BottomSheetPaymentOptionsContentViewController }) as? BottomSheetPaymentOptionsContentViewController {
+            configuration.paymentData.isAdditionalMethodsExpanded = content.showAdditional
+            configuration.paymentData.isSaveCardSelected = content.saveCardSwitch?.isOn
+            configuration.paymentData.isReceiptSelected = content.receiptSwitch?.isOn
         }
         
         AnalyticsService.shared.sendActionClickEvent(
@@ -342,12 +530,7 @@ extension PaymentOptionsViewController: BottomSheetPaymentOptionsSelectionButton
             screenName: "/methods"
         )
         
-        guard let present = method.presentViewController else { return }
-        self.dismiss(animated: false) { [weak self] in
-            guard let self = self,
-                  let topController = UIApplication.topViewController() else { return }
-            present(topController, self.configuration)
-        }
+        launchResolvedMethod(resolved)
     }
     
     func patch(email: String?, tokenize: Bool) {
@@ -368,6 +551,7 @@ extension PaymentOptionsViewController: BottomSheetPaymentOptionsSelectionButton
         }
         
         guard !patch.isEmpty else {
+            print("PATCH не выполняем: изменений нет")
             return
         }
         

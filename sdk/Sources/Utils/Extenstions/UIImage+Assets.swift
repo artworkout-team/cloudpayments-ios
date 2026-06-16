@@ -55,6 +55,10 @@ extension UIImage {
         return self.named("icon_card_additional")
     }
     
+    public class var iconForeignCardAdditional: UIImage {
+        return self.named("icon_foreign_card_additional")
+    }
+    
     public class var iconProgress: UIImage {
         return self.named("ic_progress")
     }
@@ -101,6 +105,10 @@ extension UIImage {
     
     public class var iconMethodDolyame: UIImage {
         return self.named("icon_method_dolyame")
+    }
+    
+    public class var iconForeignCard: UIImage {
+        return self.named("icn_foreign_card")
     }
 }
 

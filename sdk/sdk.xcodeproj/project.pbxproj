@@ -28,6 +28,10 @@
 		238ABA712BFB328C00862A60 /* ProgressSberPayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238ABA702BFB328C00862A60 /* ProgressSberPayViewController.swift */; };
 		238ABA752BFB32CD00862A60 /* ProgressSberPayAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238ABA742BFB32CD00862A60 /* ProgressSberPayAssembly.swift */; };
 		238ABA772BFCB0F000862A60 /* SberPayLinkRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238ABA762BFCB0F000862A60 /* SberPayLinkRequest.swift */; };
+		2393D19C2FD9DD3B00527CEE /* ProgressAltForeignCardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2393D19B2FD9DD3600527CEE /* ProgressAltForeignCardViewController.swift */; };
+		2393D19E2FD9DD8600527CEE /* ProgressAltForeingCardAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2393D19D2FD9DD8400527CEE /* ProgressAltForeingCardAssembly.swift */; };
+		2393D1A02FD9DDB300527CEE /* ProgressAltForeignCardPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2393D19F2FD9DDB000527CEE /* ProgressAltForeignCardPresenter.swift */; };
+		2393D1A22FD9DEC700527CEE /* AltForeignCardLinkRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2393D1A12FD9DEC500527CEE /* AltForeignCardLinkRequest.swift */; };
 		23A32A532C340079008BA792 /* AltPayDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A32A522C340079008BA792 /* AltPayDataResponse.swift */; };
 		23A32A552C340123008BA792 /* SbpDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A32A542C340123008BA792 /* SbpDataResponse.swift */; };
 		23B404A02D53EE04004546C9 /* LoggerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B4049F2D53EE04004546C9 /* LoggerService.swift */; };
@@ -96,6 +100,7 @@
 		8341E495268E65EE007561FF /* ThreeDsData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8341E46E268E65EE007561FF /* ThreeDsData.swift */; };
 		8341E498268E6626007561FF /* CloudpaymentsHTTPResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8341E497268E6626007561FF /* CloudpaymentsHTTPResource.swift */; };
 		B1F117392938868B00DBBCC3 /* ApiError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F117382938868B00DBBCC3 /* ApiError.swift */; };
+		D231D5219AC42EB51E3E9163 /* Pods_sdk.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09D9B32B4D1EB790BD2E67C2 /* Pods_sdk.framework */; };
 		E80637A92A8A69F800845558 /* UITableViewCell+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80637A82A8A69F800845558 /* UITableViewCell+Extensions.swift */; };
 		E817C0F42A79186200D4A1C3 /* PublicKeyResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = E817C0F32A79186200D4A1C3 /* PublicKeyResponse.swift */; };
 		E82ECBE32A790470001BD54C /* PublicKey.txt in Resources */ = {isa = PBXBuildFile; fileRef = E82ECBE02A79046F001BD54C /* PublicKey.txt */; };
@@ -120,10 +125,11 @@
 		E8EA45452AB336C700A22B4B /* UIApplication+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8EA45442AB336C700A22B4B /* UIApplication+Extensions.swift */; };
 		E8EA45492AB3385900A22B4B /* EmailType.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8EA45482AB3385900A22B4B /* EmailType.swift */; };
 		E8EA454B2AB339DF00A22B4B /* LoaderType.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8EA454A2AB339DF00A22B4B /* LoaderType.swift */; };
-		FE83A5F4A99908A45A3AE287 /* Pods_sdk.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0959750F047243F48225957 /* Pods_sdk.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		025C355A66DDB97A43AD4645 /* Pods-sdk.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sdk.release.xcconfig"; path = "Target Support Files/Pods-sdk/Pods-sdk.release.xcconfig"; sourceTree = "<group>"; };
+		09D9B32B4D1EB790BD2E67C2 /* Pods_sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		134298D52339F6A7009C744C /* sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		134298D92339F6A7009C744C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2306C67B2B10BD72009C25DF /* WaitStatusRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitStatusRequest.swift; sourceTree = "<group>"; };
@@ -147,6 +153,10 @@
 		238ABA702BFB328C00862A60 /* ProgressSberPayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSberPayViewController.swift; sourceTree = "<group>"; };
 		238ABA742BFB32CD00862A60 /* ProgressSberPayAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSberPayAssembly.swift; sourceTree = "<group>"; };
 		238ABA762BFCB0F000862A60 /* SberPayLinkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SberPayLinkRequest.swift; sourceTree = "<group>"; };
+		2393D19B2FD9DD3600527CEE /* ProgressAltForeignCardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressAltForeignCardViewController.swift; sourceTree = "<group>"; };
+		2393D19D2FD9DD8400527CEE /* ProgressAltForeingCardAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressAltForeingCardAssembly.swift; sourceTree = "<group>"; };
+		2393D19F2FD9DDB000527CEE /* ProgressAltForeignCardPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressAltForeignCardPresenter.swift; sourceTree = "<group>"; };
+		2393D1A12FD9DEC500527CEE /* AltForeignCardLinkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltForeignCardLinkRequest.swift; sourceTree = "<group>"; };
 		23A32A522C340079008BA792 /* AltPayDataResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AltPayDataResponse.swift; sourceTree = "<group>"; };
 		23A32A542C340123008BA792 /* SbpDataResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SbpDataResponse.swift; sourceTree = "<group>"; };
 		23B4049F2D53EE04004546C9 /* LoggerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggerService.swift; sourceTree = "<group>"; };
@@ -222,8 +232,6 @@
 		83507D3D2525DFA000637BB6 /* sdk-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "sdk-Bridging-Header.h"; sourceTree = "<group>"; };
 		83507D3F2525DFDD00637BB6 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/System/Library/Frameworks/CoreServices.framework; sourceTree = DEVELOPER_DIR; };
 		B1F117382938868B00DBBCC3 /* ApiError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiError.swift; sourceTree = "<group>"; };
-		C0959750F047243F48225957 /* Pods_sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C9F5A929BE214F9E43F360B9 /* Pods-sdk.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sdk.release.xcconfig"; path = "Target Support Files/Pods-sdk/Pods-sdk.release.xcconfig"; sourceTree = "<group>"; };
 		E80637A82A8A69F800845558 /* UITableViewCell+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UITableViewCell+Extensions.swift"; sourceTree = "<group>"; };
 		E817C0F32A79186200D4A1C3 /* PublicKeyResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PublicKeyResponse.swift; sourceTree = "<group>"; };
 		E82ECBE02A79046F001BD54C /* PublicKey.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PublicKey.txt; sourceTree = "<group>"; };
@@ -248,7 +256,7 @@
 		E8EA45442AB336C700A22B4B /* UIApplication+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extensions.swift"; sourceTree = "<group>"; };
 		E8EA45482AB3385900A22B4B /* EmailType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailType.swift; sourceTree = "<group>"; };
 		E8EA454A2AB339DF00A22B4B /* LoaderType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoaderType.swift; sourceTree = "<group>"; };
-		F8544A20AD41BBC10481FA9D /* Pods-sdk.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sdk.debug.xcconfig"; path = "Target Support Files/Pods-sdk/Pods-sdk.debug.xcconfig"; sourceTree = "<group>"; };
+		F18E115F11FBB4F72B7F730D /* Pods-sdk.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sdk.debug.xcconfig"; path = "Target Support Files/Pods-sdk/Pods-sdk.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -256,7 +264,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FE83A5F4A99908A45A3AE287 /* Pods_sdk.framework in Frameworks */,
+				D231D5219AC42EB51E3E9163 /* Pods_sdk.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -381,9 +389,20 @@
 			path = PaymentSberPayModule;
 			sourceTree = "<group>";
 		};
+		2393D19A2FD9DD1700527CEE /* PaymentAltForeignCard */ = {
+			isa = PBXGroup;
+			children = (
+				2393D19F2FD9DDB000527CEE /* ProgressAltForeignCardPresenter.swift */,
+				2393D19D2FD9DD8400527CEE /* ProgressAltForeingCardAssembly.swift */,
+				2393D19B2FD9DD3600527CEE /* ProgressAltForeignCardViewController.swift */,
+			);
+			path = PaymentAltForeignCard;
+			sourceTree = "<group>";
+		};
 		23CD597C2C33F7A100D6A94D /* Requests */ = {
 			isa = PBXGroup;
 			children = (
+				2393D1A12FD9DEC500527CEE /* AltForeignCardLinkRequest.swift */,
 				23DE52102EA75FAB00D73F97 /* AnalyticsService.swift */,
 				23DC1E8E2E79F6E100B9C8EC /* IntentPatchByIdRequest.swift */,
 				23DC1E8C2E79F61300B9C8EC /* CreateIntentRequest.swift */,
@@ -594,6 +613,7 @@
 		8341E45C268E65ED007561FF /* PaymentForm */ = {
 			isa = PBXGroup;
 			children = (
+				2393D19A2FD9DD1700527CEE /* PaymentAltForeignCard */,
 				E8EA45472AB3382B00A22B4B /* Enums */,
 				23DC1E9E2E79FAEC00B9C8EC /* BaseViewController */,
 				238644BF2DDC939B00D4AE1C /* PaymentBottomSheetModule */,
@@ -640,7 +660,7 @@
 				83507D372525DF4300637BB6 /* AudioToolbox.framework */,
 				83507D352525DF3C00637BB6 /* AVFoundation.framework */,
 				83507D332525DF3700637BB6 /* Accelerate.framework */,
-				C0959750F047243F48225957 /* Pods_sdk.framework */,
+				09D9B32B4D1EB790BD2E67C2 /* Pods_sdk.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -648,8 +668,8 @@
 		D6C804324FE0F6D877C7A194 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				F8544A20AD41BBC10481FA9D /* Pods-sdk.debug.xcconfig */,
-				C9F5A929BE214F9E43F360B9 /* Pods-sdk.release.xcconfig */,
+				F18E115F11FBB4F72B7F730D /* Pods-sdk.debug.xcconfig */,
+				025C355A66DDB97A43AD4645 /* Pods-sdk.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -699,7 +719,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 134298DD2339F6A7009C744C /* Build configuration list for PBXNativeTarget "sdk" */;
 			buildPhases = (
-				0CAE7C5FAE8AA2968F8FF201 /* [CP] Check Pods Manifest.lock */,
+				FE7DEFA7E429D3B3C93A9CE0 /* [CP] Check Pods Manifest.lock */,
 				134298D02339F6A7009C744C /* Headers */,
 				134298D12339F6A7009C744C /* Sources */,
 				134298D22339F6A7009C744C /* Frameworks */,
@@ -761,7 +781,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0CAE7C5FAE8AA2968F8FF201 /* [CP] Check Pods Manifest.lock */ = {
+		FE7DEFA7E429D3B3C93A9CE0 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -802,6 +822,7 @@
 				8341E47E268E65EE007561FF /* PostThreeDsRequest.swift in Sources */,
 				2329C3622E390F2B00E01247 /* TooltipView.swift in Sources */,
 				E85165292ABA231B009B3E09 /* InputFieldType.swift in Sources */,
+				2393D19E2FD9DD8600527CEE /* ProgressAltForeingCardAssembly.swift in Sources */,
 				23DEABF72BE382FA00CA3B3A /* ProgressSbpViewController.swift in Sources */,
 				8341E47F268E65EE007561FF /* TransactionResponse.swift in Sources */,
 				E86334462AB1812100292A98 /* LoaderView.swift in Sources */,
@@ -832,6 +853,7 @@
 				23DC1EA32E79FBE700B9C8EC /* PaymentThreeDsProcessController.swift in Sources */,
 				8341E476268E65EE007561FF /* UIColor+Assets.swift in Sources */,
 				238ABA752BFB32CD00862A60 /* ProgressSberPayAssembly.swift in Sources */,
+				2393D19C2FD9DD3B00527CEE /* ProgressAltForeignCardViewController.swift in Sources */,
 				8341E477268E65EE007561FF /* UIView+Constraints.swift in Sources */,
 				23DC1E872E79F46100B9C8EC /* ProgressDolyameViewController.swift in Sources */,
 				E82ECC062A790A31001BD54C /* View.swift in Sources */,
@@ -872,6 +894,7 @@
 				8341E473268E65EE007561FF /* UIViewController+Extensions.swift in Sources */,
 				8341E482268E65EE007561FF /* BankInfo.swift in Sources */,
 				23F9F8172EF1D5870034964F /* PaymentForm.swift in Sources */,
+				2393D1A22FD9DEC700527CEE /* AltForeignCardLinkRequest.swift in Sources */,
 				23DC1E9D2E79FAB200B9C8EC /* PaymentResultViewController.swift in Sources */,
 				E80637A92A8A69F800845558 /* UITableViewCell+Extensions.swift in Sources */,
 				23F3BA162B70DCB200935F15 /* BinInfoRequest.swift in Sources */,
@@ -888,6 +911,7 @@
 				2329C3652E390F8E00E01247 /* ProgressPaymentView.swift in Sources */,
 				23DC1E922E79F7B400B9C8EC /* PaymentCardContentViewController.swift in Sources */,
 				23CD597B2C33F77800D6A94D /* NameCardType.swift in Sources */,
+				2393D1A02FD9DDB300527CEE /* ProgressAltForeignCardPresenter.swift in Sources */,
 				2329C35A2E390DA600E01247 /* PaymentOptionsContent.swift in Sources */,
 				8341E47B268E65EE007561FF /* AuthRequest.swift in Sources */,
 				8341E472268E65EE007561FF /* FormPresentationController.swift in Sources */,
@@ -1038,7 +1062,7 @@
 		};
 		134298DE2339F6A7009C744C /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F8544A20AD41BBC10481FA9D /* Pods-sdk.debug.xcconfig */;
+			baseConfigurationReference = F18E115F11FBB4F72B7F730D /* Pods-sdk.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ENABLE_MODULES = YES;
@@ -1072,7 +1096,7 @@
 		};
 		134298DF2339F6A7009C744C /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C9F5A929BE214F9E43F360B9 /* Pods-sdk.release.xcconfig */;
+			baseConfigurationReference = 025C355A66DDB97A43AD4645 /* Pods-sdk.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ENABLE_MODULES = YES;

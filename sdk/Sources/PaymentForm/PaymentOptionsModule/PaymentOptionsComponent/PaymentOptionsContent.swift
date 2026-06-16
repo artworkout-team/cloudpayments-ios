@@ -10,7 +10,7 @@ import UIKit
 import Foundation
 
 protocol BottomSheetPaymentOptionsSelectionButtonDelegate: AnyObject {
-    func didSelect(method: PaymentMethodType)
+    func didSelect(method: PaymentOptionsViewController.ResolvedPaymentMethod)
     func patch(email: String?, tokenize: Bool)
 }
 
@@ -19,7 +19,12 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     //Button components
     private let configuration: PaymentConfiguration
     private var paymentButtons: [UIButton] = []
-    private let methods: [PaymentMethod]
+    private let methods: [PaymentOptionsViewController.ResolvedPaymentMethod]
+    
+    private var displayedResolvedMethods: [PaymentOptionsViewController.ResolvedPaymentMethod] = []
+    private var additionalResolvedMethods: [PaymentOptionsViewController.ResolvedPaymentMethod] = []
+    private var resolvedByButtonTag: [Int: PaymentOptionsViewController.ResolvedPaymentMethod] = [:]
+    
     private(set) var additionalMethods: [PaymentMethodType] = []
     private(set) var displayedMethods: [PaymentMethodType] = []
     private(set) var showAdditional = false
@@ -43,9 +48,14 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     
     weak var delegate: BottomSheetPaymentOptionsSelectionButtonDelegate?
     
-    // MARK: - Init
-    
-    init(methods: [PaymentMethod], saveCardState: IntentSaveCardState?, tokenize: Bool?, emailBehavior: EmailBehaviorType, email: String?, configuration: PaymentConfiguration) {
+    init(
+        methods: [PaymentOptionsViewController.ResolvedPaymentMethod],
+        saveCardState: IntentSaveCardState?,
+        tokenize: Bool?,
+        emailBehavior: EmailBehaviorType,
+        email: String?,
+        configuration: PaymentConfiguration
+    ) {
         self.configuration = configuration
         self.methods = methods
         self.saveCardState = saveCardState
@@ -101,7 +111,7 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.restoreFromConfiguration()
+        restoreFromConfiguration()
     }
     
     override func viewDidLayoutSubviews() {
@@ -182,14 +192,6 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         ])
     }
     
-    private func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y <= 0 {
-            scrollView.bounces = false
-        } else {
-            scrollView.bounces = true
-        }
-    }
-    
     private func indexBeforeFirstNonButton() -> Int {
         if let index = buttonsStack.arrangedSubviews.firstIndex(where: { view in
             !(view is UIButton) && view.accessibilityIdentifier != additionalButtonID
@@ -205,38 +207,45 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
             buttonsStack.setCustomSpacing(32, after: moreOrLast)
         }
         
-        if let saveCardContainer = saveCardContainer {
+        if let saveCardContainer {
             buttonsStack.setCustomSpacing(16, after: saveCardContainer)
         }
     }
     
     private func configureButtonsSaveCardAndEmailBlocks() {
-        let supported = methods.compactMap { PaymentMethodType(rawValue: $0.type ?? "") }
-        
         displayedMethods.removeAll()
+        additionalMethods.removeAll()
+        displayedResolvedMethods.removeAll()
+        additionalResolvedMethods.removeAll()
         
-        if supported.count <= 3 {
-            supported.forEach { type in
-                let button = makeButton(for: type)
+        if methods.count <= 3 {
+            for resolved in methods {
+                let button = makeButton(for: resolved)
                 buttonsStack.addArrangedSubview(button)
-                displayedMethods.append(type)
+                
+                displayedResolvedMethods.append(resolved)
+                displayedMethods.append(resolved.displayType)
             }
         } else {
-            for (index, type) in supported.enumerated() {
+            for (index, resolved) in methods.enumerated() {
                 if index < 2 {
-                    let button = makeButton(for: type)
+                    let button = makeButton(for: resolved)
                     buttonsStack.addArrangedSubview(button)
-                    displayedMethods.append(type)
+                    
+                    displayedResolvedMethods.append(resolved)
+                    displayedMethods.append(resolved.displayType)
                 } else {
-                    additionalMethods.append(type)
+                    additionalResolvedMethods.append(resolved)
+                    additionalMethods.append(resolved.displayType)
                 }
             }
-            let more = makeMoreMethodsView(for: additionalMethods)
+            
+            let more = makeMoreMethodsView(for: additionalResolvedMethods)
             buttonsStack.addArrangedSubview(more)
             moreButton = more
         }
         
-        if let saveCardState = saveCardState {
+        if let saveCardState {
             setupSaveCardUI(state: saveCardState, isSelected: tokenize ?? false)
         }
         
@@ -245,7 +254,9 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         restoreCustomSpacings()
     }
     
-    private func makeButton(for type: PaymentMethodType) -> UIButton {
+    private func makeButton(for resolved: PaymentOptionsViewController.ResolvedPaymentMethod) -> UIButton {
+        let type = resolved.displayType
+        
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .fixed
         config.background.cornerRadius = 8
@@ -259,18 +270,50 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         button.heightAnchor.constraint(equalToConstant: 56).isActive = true
         button.layer.cornerRadius = 8
         button.clipsToBounds = true
-        button.tag = type.hashValue
+        
+        if type == .foreignCard {
+            button.contentHorizontalAlignment = .center
+            button.semanticContentAttribute = .forceRightToLeft
+        }
+        
+        if type == .foreignCard {
+            let gradient = CAGradientLayer()
+            gradient.colors = [
+                UIColor(red: 46, green: 113, blue: 252, alpha: 1).cgColor,
+                UIColor(red: 93, green: 23, blue: 196, alpha: 1).cgColor
+            ]
+            gradient.startPoint = CGPoint(x: 0, y: 0.5)
+            gradient.endPoint = CGPoint(x: 1, y: 0.5)
+            gradient.frame = CGRect(
+                x: 0,
+                y: 0,
+                width: UIScreen.main.bounds.width - 32,
+                height: 56
+            )
+            gradient.cornerRadius = 8
+            button.layer.insertSublayer(gradient, at: 0)
+        }
+        
+        let tag = resolvedByButtonTag.count + 1
+        button.tag = tag
+        resolvedByButtonTag[tag] = resolved
+        
         button.addTarget(self, action: #selector(paymentButtonTapped(_:)), for: .touchUpInside)
         paymentButtons.append(button)
+        
+        print("Создали кнопку: type = \(type.rawValue), kind = \(resolved.kind), tag = \(tag)")
+        
         return button
     }
     
-    private func makeIconsStack(for types: [PaymentMethodType]) -> UIView {
+    private func makeIconsStack(for methods: [PaymentOptionsViewController.ResolvedPaymentMethod]) -> UIView {
         let container = UIView()
         
         var previousView: UIImageView?
         
-        for (_, type) in types.enumerated() {
+        for resolved in methods {
+            let type = resolved.displayType
+            
             let imageView = UIImageView()
             imageView.translatesAutoresizingMaskIntoConstraints = false
             imageView.image = type.additionalButtonIcon
@@ -305,7 +348,7 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         return container
     }
     
-    private func makeMoreMethodsView(for types: [PaymentMethodType]) -> UIView {
+    private func makeMoreMethodsView(for methods: [PaymentOptionsViewController.ResolvedPaymentMethod]) -> UIView {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 8
@@ -322,7 +365,7 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         label.textColor = .colorBlue
         label.font = .systemFont(ofSize: 17)
         
-        let iconsStack = makeIconsStack(for: types)
+        let iconsStack = makeIconsStack(for: methods)
         
         let container = UIStackView(arrangedSubviews: [label, iconsStack])
         container.axis = .horizontal
@@ -355,6 +398,57 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(toggleAdditional), for: .touchUpInside)
         return button
+    }
+    
+    @objc private func toggleAdditional() {
+        showAdditional.toggle()
+        
+        UIView.performWithoutAnimation {
+            if showAdditional {
+                if let more = moreButton {
+                    buttonsStack.removeArrangedSubview(more)
+                    more.removeFromSuperview()
+                }
+                
+                for resolved in additionalResolvedMethods {
+                    let button = makeButton(for: resolved)
+                    button.accessibilityIdentifier = additionalButtonID
+                    let insertIndex = indexBeforeFirstNonButton()
+                    buttonsStack.insertArrangedSubview(button, at: insertIndex)
+                }
+                
+                let collapse = makeCollapseButton()
+                let insertIndex = indexBeforeFirstNonButton()
+                buttonsStack.insertArrangedSubview(collapse, at: insertIndex)
+                moreButton = collapse
+            } else {
+                if let collapse = moreButton {
+                    buttonsStack.removeArrangedSubview(collapse)
+                    collapse.removeFromSuperview()
+                }
+                
+                for sub in buttonsStack.arrangedSubviews where sub.accessibilityIdentifier == additionalButtonID {
+                    buttonsStack.removeArrangedSubview(sub)
+                    sub.removeFromSuperview()
+                }
+                
+                let more = makeMoreMethodsView(for: additionalResolvedMethods)
+                let insertIndex = indexBeforeFirstNonButton()
+                buttonsStack.insertArrangedSubview(more, at: insertIndex)
+                moreButton = more
+            }
+            
+            restoreCustomSpacings()
+            view.layoutIfNeeded()
+        }
+        
+        onContentChanged?()
+        
+        if !isKeyboardShowing {
+            UIView.animate(withDuration: 0.25) {
+                self.view.layoutIfNeeded()
+            }
+        }
     }
     
     private func makeReceiptSwitchAndEmailView() -> UIStackView {
@@ -423,50 +517,6 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
             stack.removeArrangedSubview(emailView)
             emailView.removeFromSuperview()
             updateButtonsEnabled(true)
-        }
-        
-        onContentChanged?()
-    }
-    
-    @objc private func toggleAdditional() {
-        showAdditional.toggle()
-        
-        UIView.performWithoutAnimation {
-            if showAdditional {
-                if let more = moreButton {
-                    buttonsStack.removeArrangedSubview(more)
-                    more.removeFromSuperview()
-                }
-                
-                for type in additionalMethods {
-                    let button = makeButton(for: type)
-                    button.accessibilityIdentifier = additionalButtonID
-                    let insertIndex = indexBeforeFirstNonButton()
-                    buttonsStack.insertArrangedSubview(button, at: insertIndex)
-                }
-                
-                let collapse = makeCollapseButton()
-                let insertIndex = indexBeforeFirstNonButton()
-                buttonsStack.insertArrangedSubview(collapse, at: insertIndex)
-                moreButton = collapse
-            } else {
-                if let collapse = moreButton {
-                    buttonsStack.removeArrangedSubview(collapse)
-                    collapse.removeFromSuperview()
-                }
-                for sub in buttonsStack.arrangedSubviews where sub.accessibilityIdentifier == additionalButtonID {
-                    buttonsStack.removeArrangedSubview(sub)
-                    sub.removeFromSuperview()
-                }
-                
-                let more = makeMoreMethodsView(for: additionalMethods)
-                let insertIndex = indexBeforeFirstNonButton()
-                buttonsStack.insertArrangedSubview(more, at: insertIndex)
-                moreButton = more
-            }
-            
-            restoreCustomSpacings()
-            view.layoutIfNeeded()
         }
         
         onContentChanged?()
@@ -625,9 +675,13 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
     }
     
     @objc private func paymentButtonTapped(_ sender: UIButton) {
-        guard let methodType = PaymentMethodType.allCases.first(where: { $0.hashValue == sender.tag }) else {
+        guard let resolved = resolvedByButtonTag[sender.tag] else {
             return
         }
+        
+        let methodType = resolved.displayType
+        
+        print("Нажата кнопка: \(methodType.rawValue)")
         
         sender.startLoading(loaderImage: .ic_button_logo)
         
@@ -638,16 +692,18 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
             emailFillEventSent = true
         }
         
-        delegate?.didSelect(method: methodType)
+        delegate?.didSelect(method: resolved)
         
         let currentEmail = emailContainer?.email
         let tokenize = saveCardSwitch?.isOn ?? false
         
         delegate?.patch(email: currentEmail, tokenize: tokenize)
         
-        sender.stopLoading(title: methodType.buttonTitle,
-                           icon: methodType.buttonIcon,
-                           backgroundColor: methodType.backgroundColor)
+        sender.stopLoading(
+            title: methodType.buttonTitle,
+            icon: methodType.buttonIcon,
+            backgroundColor: methodType.backgroundColor ?? .white
+        )
     }
 }
 

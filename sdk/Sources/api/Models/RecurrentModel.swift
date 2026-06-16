@@ -8,14 +8,14 @@
 import Foundation
 
 public struct Recurrent {
-    public let amount: Double?
+    public let amount: Decimal?
     public let interval: String
     public let period: Int
     public let startDate: String?
     public let maxPeriods: Int?
     public let receipt: [String: Any]?
     
-    public init(interval: String, period: Int, receipt: [String: Any]? = nil, amount: Double? = nil, startDate: String? = nil, maxPeriods: Int? = nil) {
+    public init(interval: String, period: Int, receipt: [String: Any]? = nil, amount: Decimal? = nil, startDate: String? = nil, maxPeriods: Int? = nil) {
         self.interval = interval
         self.period = period
         self.receipt = receipt

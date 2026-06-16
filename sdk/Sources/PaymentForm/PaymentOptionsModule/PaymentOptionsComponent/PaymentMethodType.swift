@@ -14,6 +14,7 @@ public enum PaymentMethodType: String, CaseIterable {
     case sberPay = "SberPay"
     case sbp = "Sbp"
     case card = "Card"
+    case foreignCard = "ForeignCard"
     case dolyame = "Dolyame"
 }
 
@@ -21,15 +22,19 @@ extension PaymentMethodType {
     
     var buttonTitle: String? {
         switch self {
-        case .card: return "Банковская карта"
-        case .tpay, .sbp, .sberPay: return nil
-        case .dolyame: return nil
+        case .card:
+            return "Банковская карта"
+        case .foreignCard:
+            return nil
+        case .tpay, .sbp, .sberPay, .dolyame:
+            return nil
         }
     }
     
     var buttonIcon: UIImage? {
         switch self {
         case .card: return nil
+        case .foreignCard: return .iconForeignCard
         case .tpay: return .iconTPay
         case .sbp: return .iconSbp
         case .sberPay: return .iconSberPay
@@ -40,6 +45,7 @@ extension PaymentMethodType {
     var additionalButtonIcon: UIImage? {
         switch self {
         case .card: return .iconCardAdditional
+        case .foreignCard: return .iconForeignCardAdditional
         case .tpay: return .iconTpayAdditional
         case .sbp: return .iconSbpAdditional
         case .sberPay: return .iconSberPayAdditional
@@ -47,9 +53,10 @@ extension PaymentMethodType {
         }
     }
     
-    var backgroundColor: UIColor {
+    var backgroundColor: UIColor? {
         switch self {
         case .card: return .colorBlue
+        case .foreignCard: return .clear
         case .tpay: return .tpayButtonColor
         case .sbp: return .sbpButtonColor
         case .sberPay: return .sberPayButtonColor
@@ -63,6 +70,7 @@ extension PaymentMethodType {
         case .tpay: return .payResponseTPay
         case .sbp: return .payResponseSbp
         case .card: return .payResponseCardPay
+        case .foreignCard: return .payResponseAltForeignCard
         case .dolyame: return .payResponseDolyame
         }
     }
@@ -70,6 +78,7 @@ extension PaymentMethodType {
     var methodLogoImage: UIImage? {
         switch self {
         case .card: return nil
+        case .foreignCard: return nil
         case .tpay: return .iconTPay
         case .sberPay: return .iconMethodSberPay
         case .sbp: return nil
@@ -99,6 +108,8 @@ extension PaymentMethodType {
             return { viewController, configuration in
                 ProgressDolyameViewController.present(with: configuration, from: viewController)
             }
+        case .foreignCard:
+            return nil
         }
     }
 }
