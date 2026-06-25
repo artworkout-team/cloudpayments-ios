@@ -24,7 +24,7 @@ public class PaymentForm: BaseViewController {
     
     var configuration: PaymentConfiguration!
     
-    lazy var network: CloudpaymentsApi = CloudpaymentsApi.init(publicId: self.configuration.publicId, apiUrl: self.configuration.apiUrl)
+//    lazy var network: CloudpaymentsApi = CloudpaymentsApi.init(publicId: self.configuration.publicId, apiUrl: self.configuration.apiUrl)
     lazy var customTransitionDelegateInstance = FormTransitioningDelegate(viewController: self)
     
     // MARK: - Private Properties
@@ -76,39 +76,39 @@ public class PaymentForm: BaseViewController {
         }
     }
     
-    internal func chargeIntentApi(cardCryptogramPacket: String, email: String?, completion: PaymentCallbackIntentApi?) {
-        network.intentApiPay(cardCryptogram: cardCryptogramPacket, with: configuration) { statusCode, result in
-            if let statusCode = statusCode, let result = result {
-                if statusCode == 202 {
-                    self.show3ds(transactionResponse: result, completion: completion, statusCode: statusCode)
-                } else if statusCode == 200 {
-                    print("Non 3DS — статус: \(String(describing: result.transaction?.status))")
-                    completion?(true, false, result, nil)
-                } else {
-                    completion?(false, false, nil, result.transaction?.code)
-                }
-            } else {
-                completion?(false, false, nil, result?.transaction?.code)
-            }
-        }
-    }
+//    internal func chargeIntentApi(cardCryptogramPacket: String, email: String?, completion: PaymentCallbackIntentApi?) {
+//        network.intentApiPay(cardCryptogram: cardCryptogramPacket, with: configuration) { statusCode, result in
+//            if let statusCode = statusCode, let result = result {
+//                if statusCode == 202 {
+//                    self.show3ds(transactionResponse: result, completion: completion, statusCode: statusCode)
+//                } else if statusCode == 200 {
+//                    print("Non 3DS — статус: \(String(describing: result.transaction?.status))")
+//                    completion?(true, false, result, nil)
+//                } else {
+//                    completion?(false, false, nil, result.transaction?.code)
+//                }
+//            } else {
+//                completion?(false, false, nil, result?.transaction?.code)
+//            }
+//        }
+//    }
     
-    internal func authIntentApi(cardCryptogramPacket: String, email: String?, completion: PaymentCallbackIntentApi?) {
-        network.intentApiPay(cardCryptogram: cardCryptogramPacket, with: configuration) { statusCode, result in
-            if let statusCode = statusCode, let result = result {
-                if statusCode == 202 {
-                    self.show3ds(transactionResponse: result, completion: completion, statusCode: statusCode)
-                } else if statusCode == 200 {
-                    print("Non 3DS — статус: \(String(describing: result.transaction?.status))")
-                    completion?(true, false, result, nil)
-                } else {
-                    completion?(false, false, nil, result.transaction?.code)
-                }
-            } else {
-                completion?(false, false, nil, result?.transaction?.code)
-            }
-        }
-    }
+//    internal func authIntentApi(cardCryptogramPacket: String, email: String?, completion: PaymentCallbackIntentApi?) {
+//        network.intentApiPay(cardCryptogram: cardCryptogramPacket, with: configuration) { statusCode, result in
+//            if let statusCode = statusCode, let result = result {
+//                if statusCode == 202 {
+//                    self.show3ds(transactionResponse: result, completion: completion, statusCode: statusCode)
+//                } else if statusCode == 200 {
+//                    print("Non 3DS — статус: \(String(describing: result.transaction?.status))")
+//                    completion?(true, false, result, nil)
+//                } else {
+//                    completion?(false, false, nil, result.transaction?.code)
+//                }
+//            } else {
+//                completion?(false, false, nil, result?.transaction?.code)
+//            }
+//        }
+//    }
     
     internal func show3ds(transactionResponse: PaymentIntentResponse, completion: PaymentCallbackIntentApi?, statusCode: Int) {
         self.threeDsCompletionIntentApi = nil

@@ -26,7 +26,7 @@ final class PaymentThreeDsProcessController: BaseViewController {
     private var paymentResponse: PaymentIntentResponse?
 
     lazy var network: CloudpaymentsApi = CloudpaymentsApi(publicId: configuration.publicId,
-                                                         apiUrl: configuration.apiUrl)
+                                                          apiUrl: CloudpaymentsApi.baseURLString)
 
     // MARK: Config
     private let configuration: PaymentConfiguration
