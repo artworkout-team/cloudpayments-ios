@@ -16,6 +16,7 @@ public enum PaymentMethodType: String, CaseIterable {
     case card = "Card"
     case foreignCard = "ForeignCard"
     case dolyame = "Dolyame"
+    case tInstallment = "TcsInstallment"
 }
 
 extension PaymentMethodType {
@@ -28,6 +29,8 @@ extension PaymentMethodType {
             return nil
         case .tpay, .sbp, .sberPay, .dolyame:
             return nil
+        case .tInstallment:
+            return "Купить в рассрочку"
         }
     }
     
@@ -39,6 +42,7 @@ extension PaymentMethodType {
         case .sbp: return .iconSbp
         case .sberPay: return .iconSberPay
         case .dolyame: return .iconDolyame
+        case .tInstallment: return .iconTInstalment
         }
     }
     
@@ -50,6 +54,7 @@ extension PaymentMethodType {
         case .sbp: return .iconSbpAdditional
         case .sberPay: return .iconSberPayAdditional
         case .dolyame: return .iconDolyameAdditional
+        case .tInstallment: return .iconTInstalmentAdditional
         }
     }
     
@@ -61,6 +66,7 @@ extension PaymentMethodType {
         case .sbp: return .sbpButtonColor
         case .sberPay: return .sberPayButtonColor
         case .dolyame: return .black
+        case .tInstallment: return .tInstallmentButtonColor
         }
     }
     
@@ -72,6 +78,7 @@ extension PaymentMethodType {
         case .card: return .payResponseCardPay
         case .foreignCard: return .payResponseAltForeignCard
         case .dolyame: return .payResponseDolyame
+        case .tInstallment: return .payResponseTInstallment
         }
     }
     
@@ -83,33 +90,7 @@ extension PaymentMethodType {
         case .sberPay: return .iconMethodSberPay
         case .sbp: return nil
         case .dolyame: return .iconMethodDolyame
-        }
-    }
-    
-    var presentViewController: ((UIViewController, PaymentConfiguration) -> Void)? {
-        switch self {
-        case .tpay:
-            return { viewController, configuration in
-                ProgressTPayViewController.present(with: configuration, from: viewController)
-            }
-        case .sberPay:
-            return { viewController, configuration in
-                ProgressSberPayViewController.present(with: configuration, from: viewController)
-            }
-        case .sbp:
-            return { viewController, configuration in
-                ProgressSbpViewController.present(with: configuration, from: viewController)
-            }
-        case .card:
-            return { viewController, configuration in
-                PaymentCardViewController.present(with: configuration, from: viewController)
-            }
-        case .dolyame:
-            return { viewController, configuration in
-                ProgressDolyameViewController.present(with: configuration, from: viewController)
-            }
-        case .foreignCard:
-            return nil
+        case .tInstallment: return nil
         }
     }
 }

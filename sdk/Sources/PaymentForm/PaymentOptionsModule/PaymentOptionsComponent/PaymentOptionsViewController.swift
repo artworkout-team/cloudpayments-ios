@@ -346,6 +346,8 @@ public final class PaymentOptionsViewController: BaseViewController {
             }
         case .sbp:
             launchDirectFlowSbp(for: resolved.method)
+        case .tInstallment:
+            launchTInstallmentFlow()
         default:
             launchDirectFlowOtherMethods(for: resolved)
         }
@@ -455,6 +457,8 @@ public final class PaymentOptionsViewController: BaseViewController {
                 ProgressDolyameViewController.present(with: self.configuration, from: controller)
             case .foreignCard:
                 ProgressAltForeignCardViewController.present(with: self.configuration, from: controller)
+            case .tInstallment:
+                PaymentTInstallmentPeriodViewController.present(with: self.configuration, from: controller)
             default:
                 break
             }
@@ -485,6 +489,17 @@ public final class PaymentOptionsViewController: BaseViewController {
         }
         
         nextVC.didMove(toParent: self)
+    }
+    
+    private func launchTInstallmentFlow() {
+        guard let controller = presentingViewController else {
+            return
+        }
+
+        dismiss(animated: false) { [weak self] in
+            guard let self else { return }
+            PaymentTInstallmentPeriodViewController.present(with: self.configuration, from: controller)
+        }
     }
 }
 

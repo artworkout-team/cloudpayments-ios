@@ -31,6 +31,10 @@ extension UIImage {
         return self.named("ic_tpay")
     }
     
+    public class var iconTInstalment: UIImage {
+        return self.named("ic_tInstalment")
+    }
+    
     public class var iconSberPayAdditional: UIImage {
         return self.named("icon_sber_pay_additional")
     }
@@ -49,6 +53,10 @@ extension UIImage {
     
     public class var iconTpayAdditional: UIImage {
         return self.named("icon_tpay_additional")
+    }
+    
+    public class var iconTInstalmentAdditional: UIImage {
+        return self.named("icon_tInstalment_additional")
     }
     
     public class var iconCardAdditional: UIImage {

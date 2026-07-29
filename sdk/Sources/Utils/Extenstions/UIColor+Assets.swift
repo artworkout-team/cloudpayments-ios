@@ -29,6 +29,10 @@ extension UIColor {
         return color(named: "color_sber_pay_button")
     }
     
+    public class var tInstallmentButtonColor: UIColor! {
+        return color(named: "color_tInstallment_button")
+    }
+    
     public class var mainText: UIColor! {
         return color(named: "color_text_main")
     }

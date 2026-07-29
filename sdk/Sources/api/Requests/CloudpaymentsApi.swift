@@ -343,6 +343,41 @@ public class CloudpaymentsApi {
         }
     }
     
+    public class func getTInstallmentLinkIntentApi(puid: String,
+                                           period: String?,
+                                           configuration: PaymentConfiguration,
+                                           completion handler: @escaping (Int?, String?) -> Void) {
+        let queryItems = [
+            "webview": "false",
+            "puid": puid,
+            "period": period
+        ]
+        
+        guard let tInstallmentLink = configuration.paymentData.paymentLinks["TcsInstallment"] else {
+            print("[getTInstallmentLinkIntentApi] Ссылка TInstallment отсутствует в paymentLinks")
+            handler(nil, nil)
+            return
+        }
+        
+        print("[getTInstallmentLinkIntentApi] Ссылка TInstallment: \(tInstallmentLink)")
+        
+        let request = TInstallmentLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: tInstallmentLink)
+        
+        print("[getTInstallmentLinkIntentApi] Формируем запрос с URL: \(tInstallmentLink)")
+        print("[getTInstallmentLinkIntentApi] Query Items: \(queryItems)")
+        
+        request.executeWithStatusCode { statusCode, resultLink in
+            print("[getTInstallmentLinkIntentApi] Получена ссылка: \(resultLink)")
+            handler(statusCode, resultLink)
+            
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
+            
+        } onError: { statusCode, error in
+            handler(statusCode, nil)
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
+        }
+    }
+    
     public class func getAltForeignCardLinkIntentApi(puid: String,
                                            configuration: PaymentConfiguration,
                                            completion handler: @escaping (Int?, String?) -> Void) {
@@ -397,6 +432,9 @@ public class CloudpaymentsApi {
             observerName = ObserverKeys.intentDolyameObserver.key
         case .foreignCard:
             observerName = ObserverKeys.intentAltForeignCardObserver.key
+        case .tInstallment:
+            observerName = ObserverKeys.intentTInstallmentObserver.key
+            
         }
         
         request.executeWithStatusCode { statusCode, value in

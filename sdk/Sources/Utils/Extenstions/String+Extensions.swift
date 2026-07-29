@@ -12,8 +12,9 @@ extension String {
     static let tPayTransactionPolling = "TPayTransactionPolling"
     static let sberPayTransactionPolling = "SberPayTransactionPolling"
     static let sbpTransactionPolling = "SbpTransactionPolling"
-    static let dolyameTransactionPolling = "SbpTransactionPolling"
+    static let dolyameTransactionPolling = "DolyameTransactionPolling"
     static let altForeignCardTransactionPolling = "AltForeignCardPolling"
+    static let tInstallmentTransactionPollingService = "tInstallmentTransactionPolling"
     
     static let bundleName = "CloudpaymentsSdkResources"
     static let errorWord = "Ошибка"
@@ -32,6 +33,7 @@ extension String {
     static let payResponseTPay = "Ждем ответа от"
     static let payResponseSbp = "Ждем ответа от банка"
     static let payResponseAltForeignCard = "Ждем ответа от банка"
+    static let payResponseTInstallment = "Ждем ответа от банка"
     static let payResponseSberPay = "Ждем ответа от"
     static let payResponseDolyame = "Ждем ответа от"
     static let payResponseCardPay = "Оплата в процессе"
@@ -114,6 +116,10 @@ extension String {
     
     func toInt() -> Int? {
         return Int(self)
+    }
+    
+    func toDouble() -> Double? {
+        return Double(self)
     }
 }
 

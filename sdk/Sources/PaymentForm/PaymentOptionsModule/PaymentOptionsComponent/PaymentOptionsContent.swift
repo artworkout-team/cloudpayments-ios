@@ -271,6 +271,21 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         button.layer.cornerRadius = 8
         button.clipsToBounds = true
         
+        if type == .tInstallment {
+            button.configurationUpdateHandler = { btn in
+                guard var updatedConfig = btn.configuration else { return }
+                
+                updatedConfig.attributedTitle = AttributedString(
+                    type.buttonTitle ?? "",
+                    attributes: AttributeContainer([
+                        .foregroundColor: UIColor(red: 51, green: 51, blue: 51, alpha: 1),
+                        .font: UIFont.systemFont(ofSize: 16, weight: .semibold)
+                    ])
+                )
+                btn.configuration = updatedConfig
+            }
+        }
+            
         if type == .foreignCard {
             button.contentHorizontalAlignment = .center
             button.semanticContentAttribute = .forceRightToLeft
@@ -301,7 +316,7 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
         button.addTarget(self, action: #selector(paymentButtonTapped(_:)), for: .touchUpInside)
         paymentButtons.append(button)
         
-        print("Создали кнопку: type = \(type.rawValue), kind = \(resolved.kind), tag = \(tag)")
+        print("Создали кнопку: type = \(type.rawValue)")
         
         return button
     }

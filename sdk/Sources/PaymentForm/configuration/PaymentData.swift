@@ -76,6 +76,8 @@ public class PaymentData {
     var isQiwi: Bool? = nil
     var intentId: String? = nil
     var paymentLinks: [String: String] = [:]
+    var periods: [String] = []
+    var selectedTInstallmentPeriod: String?
     var sberPayData: String?
     var sbpBanks: [Bank]?
     var intentSaveCardState: IntentSaveCardState?

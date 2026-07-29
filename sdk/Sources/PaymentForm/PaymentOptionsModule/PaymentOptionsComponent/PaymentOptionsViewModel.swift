@@ -155,6 +155,13 @@ final class BottomSheetPaymentOptionsViewModel {
                 
             case .card:
                 print("Card: link не сохраняем")
+            case .tInstallment:
+                if let link = method.link {
+                    configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для рассрочки: \(link)")
+                }
+                configuration.paymentData.periods = method.periods ?? []
+                print("Сохранили периоды: \(configuration.paymentData.periods)")
             }
         }
     }
