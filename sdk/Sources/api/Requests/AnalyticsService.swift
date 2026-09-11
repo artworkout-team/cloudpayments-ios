@@ -12,7 +12,7 @@ import UIKit
 final class AnalyticsService {
     static let shared = AnalyticsService()
     
-    private let analyticsURLString = "https://api-statist.tinkoff.ru/gateway/v1/events"
+    private let analyticsURLString = "https://as.tbank.ru/gateway/v1/events"
     private var sessionStartTime: Int64?
     private var cachedDeviceId: String?
     private var currentSequence: Int = 0
