@@ -13,6 +13,7 @@ extension String {
     static let sberPayTransactionPolling = "SberPayTransactionPolling"
     static let sbpTransactionPolling = "SbpTransactionPolling"
     static let dolyameTransactionPolling = "DolyameTransactionPolling"
+    static let dRTransactionPolling = "DRTransactionPolling"
     static let altForeignCardTransactionPolling = "AltForeignCardPolling"
     static let tInstallmentTransactionPollingService = "tInstallmentTransactionPolling"
     

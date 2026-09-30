@@ -118,6 +118,15 @@ extension UIImage {
     public class var iconForeignCard: UIImage {
         return self.named("icn_foreign_card")
     }
+    
+    public class var iconDr: UIImage {
+        return self.named("icon_dr_button")
+    }
+    
+    public class var iconDrAdditional: UIImage {
+        return self.named("icon_dr_additional")
+    }
+    
 }
 
 extension UIImageView {

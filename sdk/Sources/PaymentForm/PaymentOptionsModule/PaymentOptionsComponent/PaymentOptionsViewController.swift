@@ -459,6 +459,8 @@ public final class PaymentOptionsViewController: BaseViewController {
                 ProgressAltForeignCardViewController.present(with: self.configuration, from: controller)
             case .tInstallment:
                 PaymentTInstallmentPeriodViewController.present(with: self.configuration, from: controller)
+            case .dr:
+                ProgressDRViewController.present(with: self.configuration, from: controller)
             default:
                 break
             }

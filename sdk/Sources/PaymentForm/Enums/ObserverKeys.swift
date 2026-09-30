@@ -19,6 +19,7 @@ enum ObserverKeys: String {
     case intentForeignCardObserver = "IntentForeignCardObserver"
     case intentAltForeignCardObserver = "IntentAltForeignCardObserver"
     case intentTInstallmentObserver = "IntentTInstallmentObserver"
+    case intentDRObserver = "IntentDRObserver"
 
     var key: NSNotification.Name {
         return NSNotification.Name(rawValue: rawValue)

@@ -33,6 +33,10 @@ extension UIColor {
         return color(named: "color_tInstallment_button")
     }
     
+    public class var drButtonColor: UIColor! {
+        return color(named: "color_dr_button")
+    }
+    
     public class var mainText: UIColor! {
         return color(named: "color_text_main")
     }

@@ -17,6 +17,7 @@ public enum PaymentMethodType: String, CaseIterable {
     case foreignCard = "ForeignCard"
     case dolyame = "Dolyame"
     case tInstallment = "TcsInstallment"
+    case dr = "DR"
 }
 
 extension PaymentMethodType {
@@ -31,6 +32,7 @@ extension PaymentMethodType {
             return nil
         case .tInstallment:
             return "Купить в рассрочку"
+        case .dr: return "Цифровым рублем"
         }
     }
     
@@ -43,6 +45,7 @@ extension PaymentMethodType {
         case .sberPay: return .iconSberPay
         case .dolyame: return .iconDolyame
         case .tInstallment: return .iconTInstalment
+        case .dr: return .iconDr
         }
     }
     
@@ -55,6 +58,7 @@ extension PaymentMethodType {
         case .sberPay: return .iconSberPayAdditional
         case .dolyame: return .iconDolyameAdditional
         case .tInstallment: return .iconTInstalmentAdditional
+        case .dr: return .iconDrAdditional
         }
     }
     
@@ -67,6 +71,7 @@ extension PaymentMethodType {
         case .sberPay: return .sberPayButtonColor
         case .dolyame: return .black
         case .tInstallment: return .tInstallmentButtonColor
+        case .dr: return .drButtonColor
         }
     }
     
@@ -79,6 +84,7 @@ extension PaymentMethodType {
         case .foreignCard: return .payResponseAltForeignCard
         case .dolyame: return .payResponseDolyame
         case .tInstallment: return .payResponseTInstallment
+        case .dr: return .payResponseCardPay
         }
     }
     
@@ -91,6 +97,7 @@ extension PaymentMethodType {
         case .sbp: return nil
         case .dolyame: return .iconMethodDolyame
         case .tInstallment: return nil
+        case .dr: return nil
         }
     }
 }

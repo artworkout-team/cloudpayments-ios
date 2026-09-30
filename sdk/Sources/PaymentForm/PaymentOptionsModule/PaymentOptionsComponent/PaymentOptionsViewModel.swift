@@ -162,6 +162,11 @@ final class BottomSheetPaymentOptionsViewModel {
                 }
                 configuration.paymentData.periods = method.periods ?? []
                 print("Сохранили периоды: \(configuration.paymentData.periods)")
+            case .dr:
+                if let link = method.link {
+                    configuration.paymentData.paymentLinks[type.rawValue] = link
+                    print("Сохранили link для цифрового рубля: \(link)")
+                }
             }
         }
     }

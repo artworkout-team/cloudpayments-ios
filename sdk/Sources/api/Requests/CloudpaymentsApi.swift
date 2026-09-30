@@ -343,6 +343,39 @@ public class CloudpaymentsApi {
         }
     }
     
+    public class func getDRLinkIntentApi(puid: String,
+                                           configuration: PaymentConfiguration,
+                                           completion handler: @escaping (Int?, String?) -> Void) {
+        let queryItems = [
+            "webview": "false",
+            "puid": puid
+        ]
+        
+        guard let drLink = configuration.paymentData.paymentLinks["DR"] else {
+            print("[getDRLinkIntentApi] Ссылка DR отсутствует в paymentLinks")
+            handler(nil, nil)
+            return
+        }
+        
+        print("[getDRLinkIntentApi] Ссылка DR: \(drLink)")
+        
+        let request = DRLinkRequestIntent(queryItems: queryItems, params: [:], apiUrl: drLink)
+        
+        print("[getDRLinkIntentApi] Формируем запрос с URL: \(drLink)")
+        print("[getDRLinkIntentApi] Query Items: \(queryItems)")
+        
+        request.executeWithStatusCode { statusCode, resultLink in
+            print("[getDRLinkIntentApi] Получена ссылка: \(resultLink)")
+            handler(statusCode, resultLink)
+            
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: true)
+            
+        } onError: { statusCode, error in
+            handler(statusCode, nil)
+            LoggerService.shared.logApiRequest(method: request.data.method.rawValue, url: request.data.path, success: false)
+        }
+    }
+    
     public class func getTInstallmentLinkIntentApi(puid: String,
                                            period: String?,
                                            configuration: PaymentConfiguration,
@@ -434,7 +467,8 @@ public class CloudpaymentsApi {
             observerName = ObserverKeys.intentAltForeignCardObserver.key
         case .tInstallment:
             observerName = ObserverKeys.intentTInstallmentObserver.key
-            
+        case .dr:
+            observerName = ObserverKeys.intentDRObserver.key
         }
         
         request.executeWithStatusCode { statusCode, value in

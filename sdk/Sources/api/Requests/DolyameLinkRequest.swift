@@ -34,3 +34,5 @@ final class DolyameLinkRequestIntent: BaseRequest, CloudpaymentsRequestType {
         
     }
 }
+
+

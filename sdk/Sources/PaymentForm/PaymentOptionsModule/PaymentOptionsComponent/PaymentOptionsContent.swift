@@ -771,6 +771,38 @@ final class BottomSheetPaymentOptionsContentViewController: BaseViewController {
             }
         }
         
+        if type == .dr {
+            button.configurationUpdateHandler = { btn in
+                guard var updatedConfig =
+                        btn.configuration else {
+                    return
+                }
+                
+                updatedConfig.attributedTitle =
+                AttributedString(
+                    type.buttonTitle ?? "",
+                    attributes: AttributeContainer([
+                        .foregroundColor:
+                            UIColor(
+                                red: 34 / 255,
+                                green: 45 / 255,
+                                blue: 65 / 255,
+                                alpha: 1
+                            ),
+                        
+                            .font:
+                            UIFont.systemFont(
+                                ofSize: 16,
+                                weight: .regular
+                            )
+                    ])
+                )
+                
+                btn.configuration =
+                updatedConfig
+            }
+        }
+        
         if type == .foreignCard {
             button.contentHorizontalAlignment =
                 .center
