@@ -7,6 +7,7 @@
 //
 
 import CloudpaymentsNetworking
+import Foundation
 
 final class TInstallmentLinkRequestIntent: BaseRequest, CloudpaymentsRequestType {
     typealias ResponseType = String

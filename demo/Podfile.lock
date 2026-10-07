@@ -14,8 +14,8 @@ EXTERNAL SOURCES:
     :path: "../networking"
 
 SPEC CHECKSUMS:
-  Cloudpayments: 035c348e48025cc01789c945f843934d4b1244f0
-  CloudpaymentsNetworking: 53573e85a3bbc5947b501cb008b9966324ed335b
+  Cloudpayments: f481104019b098102fcfd597713fdbd50b2eca10
+  CloudpaymentsNetworking: 27bdccc85f347194749aa8d3c82edbef1560d8fb
 
 PODFILE CHECKSUM: e6bfdced09144bd242c756af72d2f980cecc3fff
 

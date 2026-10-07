@@ -6,6 +6,7 @@
 //  Copyright © 2025 Cloudpayments. All rights reserved.
 //
 
+import CloudpaymentsNetworking
 import Foundation
 import UIKit
 
@@ -118,7 +119,7 @@ final class LoggerService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
         
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        let task = CloudpaymentsTrustedSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 debugPrint("[LoggerService] Ошибка отправки лога: \(error.localizedDescription)")
             } else if let httpResponse = response as? HTTPURLResponse {

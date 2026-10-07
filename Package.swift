@@ -31,10 +31,16 @@ let package = Package(
                 .process("Resources")
             ]
         ),
+
         .target(
             name: "CloudpaymentsNetworking",
             path: "networking",
-            sources: ["source"]
+            sources: ["source"],
+            resources: [
+                .copy("Russian_Trusted_Root_CA.cer"),
+                .copy("Russian_Trusted_Sub_CA_1.cer"),
+                .copy("Russian_Trusted_Sub_CA_2.cer")
+            ]
         ),
     ],
     swiftLanguageVersions: [.v5]

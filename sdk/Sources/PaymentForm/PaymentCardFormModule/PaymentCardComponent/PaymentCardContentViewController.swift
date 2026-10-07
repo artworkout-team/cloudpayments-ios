@@ -155,13 +155,20 @@ final class PaymentCardContentViewController: BaseViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+
         setupUI()
         configureTextFields()
         setAmountText(amountText)
         applyVisualState()
-        
-        let tap = UITapGestureRecognizer(target: self, action: #selector(tapOutside))
+
+        let tap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(tapOutside)
+        )
+
         tap.cancelsTouchesInView = false
+        tap.delegate = self
+
         view.addGestureRecognizer(tap)
     }
     
@@ -511,5 +518,27 @@ final class PaymentCardContentViewController: BaseViewController {
                 self.setAmountText("\(convertedAmount) \(currencyCode)")
             }
         }
+    }
+}
+
+extension PaymentCardContentViewController: UIGestureRecognizerDelegate {
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+
+        var touchedView: UIView? = touch.view
+
+        while let currentView = touchedView {
+
+            if currentView is UIControl {
+                return false
+            }
+
+            touchedView = currentView.superview
+        }
+
+        return true
     }
 }

@@ -6,6 +6,7 @@
 //  Copyright © 2020 Cloudpayments. All rights reserved.
 //
 
+import CloudpaymentsNetworking
 import WebKit
 
 protocol IntentThreeDsDelegate: AnyObject  {
@@ -57,7 +58,7 @@ final class IntentThreeDsProcessor: NSObject, WKNavigationDelegate {
                 
                 URLCache.shared.removeCachedResponse(for: request)
                 
-                URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+                CloudpaymentsTrustedSession.shared.dataTask(with: request) { [weak self] data, response, error in
                     guard let self = self else {
                         return
                     }

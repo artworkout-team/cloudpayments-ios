@@ -29,6 +29,35 @@ pod 'CloudpaymentsNetworking', :git =>  "https://gitpub.cloudpayments.ru/integra
 * реализовать свою платежную форму с использованием функций CloudpaymentsApi без вашего сервера
 * реализовать свою платежную форму, сформировать криптограмму и отправить ее на свой сервер
 
+### Перед использованием SDK внесите доверенные домены в ваше приложение, в Info.plist:
+
+```
+<dict>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSExceptionDomains</key>
+        <dict>
+
+            <key>cloudpayments.ru</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+
+            <key>tbank.ru</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+
+        </dict>
+    </dict>
+```
+
 ### Использование стандартной платёжной формы от CloudPayments:
 
 1. Cоздайте объект PaymentDataPayer и проинициализируйте его, затем создайте объект PaymentData передайте в него объект PaymentDataPayer, сумму платежа, валюту и дополнительные данные.
@@ -220,6 +249,10 @@ extension CheckoutViewController: ThreeDsDelegate {
 7. Выполните запрос post3ds для завершения оплаты (см. [документацию по API](https://developers.cloudpayments.ru/#obrabotka-3-d-secure)).
 
 ### История обновлений:
+
+#### 2.1.10
+
+Добавлены сертификаты МинЦифры
 
 #### 2.1.9
 

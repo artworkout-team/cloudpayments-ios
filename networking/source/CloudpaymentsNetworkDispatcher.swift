@@ -6,6 +6,337 @@
 //
 
 import Foundation
+import Security
+
+private final class CloudpaymentsTrustBundleToken:
+    NSObject {}
+
+import Foundation
+
+public enum CloudpaymentsTrustedSession {
+
+    private static let delegate =
+        TrustDelegate()
+
+    public static let shared: URLSession = {
+
+        return URLSession(
+            configuration: .default,
+            delegate: delegate,
+            delegateQueue: nil
+        )
+    }()
+
+    private final class TrustDelegate:
+        NSObject,
+        URLSessionDelegate {
+
+        func urlSession(
+            _ session: URLSession,
+            didReceive challenge:
+                URLAuthenticationChallenge,
+            completionHandler:
+                @escaping (
+                    URLSession.AuthChallengeDisposition,
+                    URLCredential?
+                ) -> Void
+        ) {
+
+            guard
+                challenge
+                    .protectionSpace
+                    .authenticationMethod
+                    ==
+                    NSURLAuthenticationMethodServerTrust,
+
+                let serverTrust =
+                    challenge
+                        .protectionSpace
+                        .serverTrust
+            else {
+
+                completionHandler(
+                    .performDefaultHandling,
+                    nil
+                )
+
+                return
+            }
+
+            let host =
+                challenge
+                    .protectionSpace
+                    .host
+
+            if CloudpaymentsTrustEvaluator
+                .evaluate(
+                    serverTrust:
+                        serverTrust,
+                    host:
+                        host
+                ) {
+
+                completionHandler(
+                    .useCredential,
+                    URLCredential(
+                        trust:
+                            serverTrust
+                    )
+                )
+
+            } else {
+
+                completionHandler(
+                    .cancelAuthenticationChallenge,
+                    nil
+                )
+            }
+        }
+    }
+}
+
+internal enum CloudpaymentsTrustEvaluator {
+
+    static func evaluate(
+        serverTrust: SecTrust,
+        host: String
+    ) -> Bool {
+
+        var systemError: CFError?
+
+        if SecTrustEvaluateWithError(
+            serverTrust,
+            &systemError
+        ) {
+
+            print("TRUST: system trust OK for \(host)")
+            return true
+        }
+
+        print(
+            "TRUST: system trust FAILED for \(host), error = \(String(describing: systemError))"
+        )
+
+        let certificates =
+            loadRussianTrustedCertificates()
+
+        print(
+            "TRUST: loaded Russian certificates = \(certificates.count)"
+        )
+
+        guard !certificates.isEmpty else {
+
+            print(
+                "TRUST: Russian certificates NOT FOUND"
+            )
+
+            return false
+        }
+
+        let policy =
+            SecPolicyCreateSSL(
+                true,
+                host as CFString
+            )
+
+        let policyStatus =
+            SecTrustSetPolicies(
+                serverTrust,
+                policy
+            )
+
+        guard policyStatus == errSecSuccess else {
+
+            print(
+                "TRUST: SecTrustSetPolicies failed = \(policyStatus)"
+            )
+
+            return false
+        }
+
+        let anchorStatus =
+            SecTrustSetAnchorCertificates(
+                serverTrust,
+                certificates as CFArray
+            )
+
+        guard anchorStatus == errSecSuccess else {
+
+            print(
+                "TRUST: SecTrustSetAnchorCertificates failed = \(anchorStatus)"
+            )
+
+            return false
+        }
+        
+        SecTrustSetAnchorCertificatesOnly(
+            serverTrust,
+            false
+        )
+
+        var russianTrustError: CFError?
+
+        let result =
+            SecTrustEvaluateWithError(
+                serverTrust,
+                &russianTrustError
+            )
+
+        if result {
+
+            print(
+                "TRUST: Russian CA trust OK for \(host)"
+            )
+
+        } else {
+
+            print(
+                "TRUST: Russian CA trust FAILED for \(host), error = \(String(describing: russianTrustError))"
+            )
+        }
+
+        return result
+    }
+
+    // MARK: - Certificates
+
+    private static func loadRussianTrustedCertificates()
+        -> [SecCertificate] {
+
+        let names = [
+            "Russian_Trusted_Root_CA",
+            "Russian_Trusted_Sub_CA_1",
+            "Russian_Trusted_Sub_CA_2"
+        ]
+
+        var result: [SecCertificate] = []
+
+        for name in names {
+
+            if let certificate =
+                loadCertificate(
+                    named: name
+                ) {
+
+                result.append(
+                    certificate
+                )
+
+            } else {
+
+                print(
+                    "TRUST: certificate NOT FOUND: \(name).cer"
+                )
+            }
+        }
+
+        return result
+    }
+
+    private static func loadCertificate(
+        named name: String
+    ) -> SecCertificate? {
+
+        let bundles =
+            candidateBundles()
+
+        for bundle in bundles {
+
+            if let url =
+                bundle.url(
+                    forResource: name,
+                    withExtension: "cer"
+                ) {
+
+                print(
+                    """
+                    TRUST: found \(name).cer
+                    """
+                )
+
+                guard
+                    let data =
+                        try? Data(
+                            contentsOf: url
+                        )
+                else {
+
+                    print(
+                        "TRUST: can't read \(url.path)"
+                    )
+
+                    continue
+                }
+
+                guard
+                    let certificate =
+                        SecCertificateCreateWithData(
+                            nil,
+                            data as CFData
+                        )
+                else {
+
+                    print(
+                        "TRUST: invalid certificate data: \(url.path)"
+                    )
+
+                    continue
+                }
+
+                return certificate
+            }
+        }
+
+        return nil
+    }
+
+    private static func candidateBundles() -> [Bundle] {
+
+        var bundles: [Bundle] = []
+
+        let frameworkBundle = Bundle(
+            for: CloudpaymentsTrustBundleToken.self
+        )
+
+        bundles.append(frameworkBundle)
+        bundles.append(.main)
+
+        let possibleBundleNames = [
+            "CloudpaymentsNetworking",
+            "Cloudpayments",
+            "org.cocoapods.CloudpaymentsNetworking"
+        ]
+
+        for parentBundle in [
+            frameworkBundle,
+            Bundle.main
+        ] {
+            for bundleName in possibleBundleNames {
+
+                if let url = parentBundle.url(
+                    forResource: bundleName,
+                    withExtension: "bundle"
+                ),
+                let bundle = Bundle(url: url) {
+
+                    bundles.append(bundle)
+                }
+            }
+        }
+
+        var unique: [Bundle] = []
+        var paths = Set<String>()
+
+        for bundle in bundles {
+            if paths.insert(bundle.bundlePath).inserted {
+                unique.append(bundle)
+            }
+        }
+
+        return unique
+    }
+}
+
 
 public protocol CloudpaymentsNetworkDispatcher {
     func dispatch(request: CloudpaymentsRequest,
@@ -152,6 +483,43 @@ extension CloudpaymentsURLSessionNetworkDispatcher: URLSessionTaskDelegate {
             completionHandler(request)
         } else {
             completionHandler(nil)
+        }
+    }
+}
+
+extension CloudpaymentsURLSessionNetworkDispatcher: URLSessionDelegate {
+    public func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (
+            URLSession.AuthChallengeDisposition,
+            URLCredential?
+        ) -> Void
+    ) {
+        guard
+            challenge.protectionSpace.authenticationMethod ==
+                NSURLAuthenticationMethodServerTrust,
+            let serverTrust = challenge.protectionSpace.serverTrust
+        else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        let host = challenge.protectionSpace.host
+
+        if CloudpaymentsTrustEvaluator.evaluate(
+            serverTrust: serverTrust,
+            host: host
+        ) {
+            completionHandler(
+                .useCredential,
+                URLCredential(trust: serverTrust)
+            )
+        } else {
+            completionHandler(
+                .cancelAuthenticationChallenge,
+                nil
+            )
         }
     }
 }

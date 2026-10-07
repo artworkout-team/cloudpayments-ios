@@ -19,6 +19,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		232ED868307616C700F99C4F /* Russian_Trusted_Root_CA.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = Russian_Trusted_Root_CA.cer; sourceTree = "<group>"; };
+		232ED869307616C700F99C4F /* Russian_Trusted_Sub_CA_1.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = Russian_Trusted_Sub_CA_1.cer; sourceTree = "<group>"; };
+		232ED86A307616C700F99C4F /* Russian_Trusted_Sub_CA_2.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = Russian_Trusted_Sub_CA_2.cer; sourceTree = "<group>"; };
 		8341E4B0268E67CC007561FF /* libCloudpaymentsNetworking.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCloudpaymentsNetworking.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8341E4BD268E682E007561FF /* CloudpaymentsError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudpaymentsError.swift; sourceTree = "<group>"; };
 		8341E4BE268E682E007561FF /* CloudpaymentsRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudpaymentsRequest.swift; sourceTree = "<group>"; };
@@ -40,6 +43,9 @@
 		8341E4A7268E67CC007561FF = {
 			isa = PBXGroup;
 			children = (
+				232ED868307616C700F99C4F /* Russian_Trusted_Root_CA.cer */,
+				232ED869307616C700F99C4F /* Russian_Trusted_Sub_CA_1.cer */,
+				232ED86A307616C700F99C4F /* Russian_Trusted_Sub_CA_2.cer */,
 				8341E4BC268E682E007561FF /* source */,
 				8341E4B1268E67CC007561FF /* Products */,
 			);

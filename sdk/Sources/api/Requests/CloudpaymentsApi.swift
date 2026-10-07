@@ -518,7 +518,7 @@ public class CloudpaymentsApi {
         
         guard let url = URL(string: string) else { return completion(nil) }
         
-        let task = URLSession.shared.dataTask(with: .init(url: url)) { data, _, _ in
+        let task = CloudpaymentsTrustedSession.shared.dataTask(with: .init(url: url)) { data, _, _ in
             guard let data = data, let image = UIImage(data: data) else { return completion(nil) }
             completion(image)
         }
@@ -570,7 +570,7 @@ extension CloudpaymentsApi {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        let session = URLSession.shared
+        let session = CloudpaymentsTrustedSession.shared
         session.dataTask(with: request) { data, response, error in
             guard let method = request.httpMethod else {
                 return
@@ -611,7 +611,7 @@ extension CloudpaymentsApi {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = data
             
-            URLSession.shared.dataTask(with: request) { _, response, error in
+            CloudpaymentsTrustedSession.shared.dataTask(with: request) { _, response, error in
                 if let http = response as? HTTPURLResponse {
                     print("Analytics sent — Status:", http.statusCode)
                     completion?(.success(()))
