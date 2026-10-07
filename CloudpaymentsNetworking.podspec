@@ -26,6 +26,15 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => "https://github.com/cloudpayments/CloudPayments-SDK-iOS.git", :tag => "#{spec.version}" }
   spec.source_files  = 'networking/source/**/*.swift'
 
+  spec.resources = [
+
+    'networking/Russian_Trusted_Root_CA.cer',
+
+    'networking/Russian_Trusted_Sub_CA_1.cer',
+
+    'networking/Russian_Trusted_Sub_CA_2.cer'
+  ]
+
   spec.requires_arc = true
 
   spec.swift_version = '5.0'
